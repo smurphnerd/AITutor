@@ -7,10 +7,24 @@ import { File } from "@shared/schema";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Gemini Pro model for text generation
-const geminiPro = genAI.getGenerativeModel({ model: "gemini-pro" });
+const geminiPro = genAI.getGenerativeModel({ 
+  model: "gemini-pro",
+  generationConfig: {
+    temperature: 0.2,
+    topP: 0.8,
+    topK: 40
+  }
+});
 
 // Gemini Pro Vision model for processing PDFs and images
-const geminiProVision = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+const geminiProVision = genAI.getGenerativeModel({ 
+  model: "gemini-pro-vision",
+  generationConfig: {
+    temperature: 0.2,
+    topP: 0.8,
+    topK: 40
+  }
+});
 
 // Set safety settings
 const safetySettings = [

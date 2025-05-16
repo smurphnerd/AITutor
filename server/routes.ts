@@ -220,19 +220,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const numericRubricIds = rubricIds.map(id => typeof id === 'string' ? parseInt(id) : id);
       const numericSubmissionIds = submissionIds.map(id => typeof id === 'string' ? parseInt(id) : id);
 
-      // Verify files exist
-      const rubricFiles = await Promise.all(
+      // Verify files exist and filter out any undefined values
+      const rubricFilesWithUndefined = await Promise.all(
         numericRubricIds.map(id => storage.getFileById(id))
       );
-      const submissionFiles = await Promise.all(
+      const submissionFilesWithUndefined = await Promise.all(
         numericSubmissionIds.map(id => storage.getFileById(id))
       );
+      
+      // Filter out any undefined files
+      const rubricFiles = rubricFilesWithUndefined.filter(file => file !== undefined);
+      const submissionFiles = submissionFilesWithUndefined.filter(file => file !== undefined);
 
-      // Check if any files were not found
-      if (rubricFiles.some(f => !f)) {
+      // Check if any files were not found by comparing original arrays with filtered ones
+      if (rubricFiles.length !== numericRubricIds.length) {
         return res.status(404).json({ message: "One or more rubric files not found" });
       }
-      if (submissionFiles.some(f => !f)) {
+      if (submissionFiles.length !== numericSubmissionIds.length) {
         return res.status(404).json({ message: "One or more submission files not found" });
       }
 
