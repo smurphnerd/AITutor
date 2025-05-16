@@ -6,9 +6,9 @@ import { File } from "@shared/schema";
 // Initialize the Google Generative AI with API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-// Gemini Pro model for text generation
+// Use more cost-effective Gemini Flash model for text generation
 const geminiPro = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-pro",
+  model: "gemini-1.5-flash",
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,
@@ -16,9 +16,9 @@ const geminiPro = genAI.getGenerativeModel({
   }
 });
 
-// Gemini Pro Vision model for processing PDFs and images
+// Use Gemini Flash Vision model for processing PDFs and images
 const geminiProVision = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-pro-vision",
+  model: "gemini-1.5-flash-vision",
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,
@@ -178,8 +178,22 @@ export async function parseRubricWithGemini(rubricFile: File): Promise<RubricSec
       });
       
       const response = result.response;
-      const jsonText = response.text();
-      const parsed = JSON.parse(jsonText);
+      let jsonText = response.text();
+      
+      // If the response is wrapped in markdown code blocks, extract just the JSON part
+      if (jsonText.includes("```json")) {
+        jsonText = jsonText.replace(/```json\s*|\s*```/g, "");
+      }
+      
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonText);
+      } catch (error) {
+        console.error("Error parsing JSON from Gemini response:", error);
+        console.log("Response text was:", jsonText);
+        // Fall back to default sections
+        parsed = getDefaultRubricSections();
+      }
       
       // Check if we got a valid array of sections
       if (Array.isArray(parsed)) {
@@ -295,8 +309,22 @@ export async function gradePapersWithGemini(
       });
       
       const response = result.response;
-      const jsonText = response.text();
-      const gradingResult = JSON.parse(jsonText);
+      let jsonText = response.text();
+      
+      // If the response is wrapped in markdown code blocks, extract just the JSON part
+      if (jsonText.includes("```json")) {
+        jsonText = jsonText.replace(/```json\s*|\s*```/g, "");
+      }
+      
+      let gradingResult;
+      try {
+        gradingResult = JSON.parse(jsonText);
+      } catch (error) {
+        console.error("Error parsing grading JSON from Gemini response:", error);
+        console.log("Response text was:", jsonText);
+        // Fallback to simulated grading
+        throw new Error("Failed to parse grading result from Gemini");
+      }
       
       // Ensure the response matches our expected format
       return {
