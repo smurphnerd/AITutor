@@ -3,10 +3,7 @@ import path from "path";
 import { File } from "@shared/schema";
 import { PDFDocument } from "pdf-lib";
 import mammoth from "mammoth";
-import OpenAI from "openai";
-
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { processPdfWithGemini } from "./gemini";
 
 /**
  * Process an uploaded file, extracting text and images
