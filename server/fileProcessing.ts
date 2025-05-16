@@ -39,11 +39,8 @@ export async function processFile(file: File) {
  * Process a PDF file, extracting text and images
  */
 async function processPdf(filePath: string) {
-  const images: string[] = [];
-  const imageDescriptions: string[] = [];
-  
   try {
-    // Load the PDF document
+    // Load the PDF document to get basic metadata
     const dataBuffer = await fs.readFile(filePath);
     const pdfDoc = await PDFDocument.load(dataBuffer);
     
@@ -51,66 +48,23 @@ async function processPdf(filePath: string) {
     const numPages = pdfDoc.getPageCount();
     
     try {
-      // Convert PDF to base64
-      const base64PDF = dataBuffer.toString('base64');
-      
-      // Try using OpenAI to extract text and identify images
-      // This might fail due to API rate limits
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system", 
-            content: "You are a PDF content extractor. Extract all text content and identify any images, figures, charts, or visual elements in the document."
-          },
-          {
-            role: "user", 
-            content: [
-              {
-                type: "text",
-                text: "Extract all the text from this PDF document and identify any images or visual elements (charts, graphs, diagrams, etc.) that appear in it. Briefly describe each visual element you find."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${base64PDF}`
-                }
-              }
-            ]
-          }
-        ]
-      });
-      
-      // Parse the response
-      const fullText = response.choices[0].message.content || "";
-      
-      // Try to identify image descriptions using a regex approach
-      const imageRegex = /(?:figure|image|chart|diagram|graph|table)\s*\d+[:\s]+(.*?)(?=(?:figure|image|chart|diagram|graph|table)\s*\d+|\n\n|$)/gi;
-      let match;
-      
-      while ((match = imageRegex.exec(fullText)) !== null) {
-        const description = match[1];
-        if (description && description.trim().length > 0) {
-          imageDescriptions.push(description.trim());
-        }
-      }
-      
-      return { text: fullText, images, imageDescriptions };
+      // Use Gemini to process the PDF and extract content
+      const result = await processPdfWithGemini(filePath);
+      return result;
     } catch (aiError) {
-      console.error("Error using OpenAI for PDF processing:", aiError);
+      console.error("Error using Gemini for PDF processing:", aiError);
       
       // Fall back to basic PDF processing without AI
-      // This will be used when OpenAI API is unavailable or rate limited
-      
       // Create a placeholder text with basic information
       const fullText = `PDF document with ${numPages} pages. Content not extracted due to AI service limitations.`;
       
       // Add a generic image description if it appears to be a multi-page document
+      const imageDescriptions = [];
       if (numPages > 1) {
         imageDescriptions.push("This document may contain images or figures that couldn't be processed automatically.");
       }
       
-      return { text: fullText, images, imageDescriptions };
+      return { text: fullText, images: [], imageDescriptions };
     }
   } catch (error) {
     console.error("Error processing PDF:", error);

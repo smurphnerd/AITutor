@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
 import { processFile } from "./fileProcessing";
-import { gradePapers } from "./openai";
+import { gradePapersWithGemini } from "./gemini";
 import { insertFileSchema } from "@shared/schema";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -265,7 +265,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             // Process the submission against all rubrics
-            const result = await gradePapers(rubricFiles, submission);
+            // Make sure submission is not undefined before passing to grading function
+            if (!submission) {
+              throw new Error("Submission file is undefined");
+            }
+            const result = await gradePapersWithGemini(rubricFiles, submission);
             
             // Store result
             const currentJob = gradingJobs.get(jobId);
