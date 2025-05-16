@@ -368,9 +368,9 @@ function generateSimulatedGradingResult(
     sectionFeedback[section.name] = {
       score,
       maxScore: section.maxScore,
-      feedback: "This is simulated feedback generated because the AI service could not process the request. The actual feedback would analyze the content against the criteria.",
-      strengths: ["The submission appears to address the key requirements for this section"],
-      improvements: ["Consider providing more detailed analysis and supporting evidence"]
+      feedback: "Gemini API rate limit exceeded. This is simulated feedback generated because we've hit the API's request limit. Try again in a few minutes or with a paid API key for higher limits.",
+      strengths: ["API rate limit exceeded - simulated strengths"],
+      improvements: ["API rate limit exceeded - simulated areas for improvement"]
     };
   });
   
@@ -383,7 +383,7 @@ function generateSimulatedGradingResult(
     submissionName: submissionFile.originalname,
     totalScore,
     maxPossibleScore,
-    overallFeedback: "This is a simulated assessment. The submission has been given a score based on typical grading patterns. For detailed feedback, please ensure the AI service is functioning properly.",
+    overallFeedback: "⚠️ Gemini API rate limit exceeded. We've generated a simulated assessment. For actual AI grading, please try again in a few minutes or consider upgrading to a paid Gemini API plan for higher quota limits.",
     status: totalScore >= passingScore ? "pass" : "fail",
     sectionFeedback,
     createdAt: new Date().toISOString()
