@@ -73,6 +73,8 @@ export const gradingResults = pgTable("grading_results", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+
+
 export const insertGradingResultSchema = createInsertSchema(gradingResults).omit({
   id: true,
   createdAt: true,
@@ -88,6 +90,8 @@ export const jobFiles = pgTable("job_files", {
   fileId: integer("file_id").notNull().references(() => files.id),
   fileType: text("file_type").notNull(), // "rubric" or "submission"
 });
+
+
 
 export const insertJobFileSchema = createInsertSchema(jobFiles).omit({
   id: true,

@@ -1,4 +1,6 @@
-import { users, type User, type InsertUser, type File, type InsertFile } from "@shared/schema";
+import { users, files, type User, type InsertUser, type File, type InsertFile } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -15,62 +17,46 @@ export interface IStorage {
   deleteFile(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private files: Map<number, File>;
-  private userCurrentId: number;
-  private fileCurrentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.files = new Map();
-    this.userCurrentId = 1;
-    this.fileCurrentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
   
   // File management methods
   async createFile(insertFile: InsertFile): Promise<File> {
-    const id = this.fileCurrentId++;
-    const now = new Date();
-    const file: File = { 
-      ...insertFile, 
-      id, 
-      uploadedAt: now 
-    };
-    this.files.set(id, file);
+    const [file] = await db
+      .insert(files)
+      .values(insertFile)
+      .returning();
     return file;
   }
 
   async getFileById(id: number): Promise<File | undefined> {
-    return this.files.get(id);
+    const [file] = await db.select().from(files).where(eq(files.id, id));
+    return file || undefined;
   }
 
   async getFilesByType(fileType: string): Promise<File[]> {
-    return Array.from(this.files.values()).filter(
-      file => file.fileType === fileType
-    );
+    return await db.select().from(files).where(eq(files.fileType, fileType));
   }
 
   async deleteFile(id: number): Promise<void> {
-    this.files.delete(id);
+    await db.delete(files).where(eq(files.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
