@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Gemini Pro model for text generation
 const geminiPro = genAI.getGenerativeModel({ 
-  model: "gemini-pro",
+  model: "gemini-1.5-pro",
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,
@@ -18,7 +18,7 @@ const geminiPro = genAI.getGenerativeModel({
 
 // Gemini Pro Vision model for processing PDFs and images
 const geminiProVision = genAI.getGenerativeModel({ 
-  model: "gemini-pro-vision",
+  model: "gemini-1.5-pro-vision",
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,
