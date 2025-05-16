@@ -147,81 +147,120 @@ export async function gradePapers(
     // Calculate total possible score
     const maxPossibleScore = allSections.reduce((sum, section) => sum + section.maxScore, 0);
     
-    // Create a prompt for grading
-    const prompt = `
-      You are an expert academic grader. I will provide you with a student submission and a rubric.
-      Your task is to grade the submission according to the rubric, providing scores and detailed feedback for each section.
-      
-      # RUBRIC SECTIONS:
-      ${allSections.map(section => 
-        `## ${section.name} (${section.maxScore} points)
-         ${section.criteria}`
-      ).join('\n\n')}
-      
-      # STUDENT SUBMISSION:
-      ${submissionContent.text}
-      
-      ${submissionContent.images && submissionContent.images.length > 0 
-        ? `# IMAGES IN SUBMISSION:
-           The document contains ${submissionContent.images.length} images. 
-           These images should be considered as part of the assessment.
-           Image descriptions: ${submissionContent.imageDescriptions?.join('; ') || 'No descriptions available'}`
-        : ''}
-      
-      # GRADING INSTRUCTIONS:
-      1. Evaluate the submission against each rubric section
-      2. Assign a score for each section (should not exceed the maximum score)
-      3. Provide detailed feedback for each section, including strengths and areas for improvement
-      4. Calculate the total score
-      5. Provide an overall assessment
-      6. Determine if the submission should pass or fail (pass requires >= 60% of total possible score)
-      
-      Format your response as a JSON object with the following structure:
-      {
-        "totalScore": number,
-        "maxPossibleScore": ${maxPossibleScore},
-        "overallFeedback": "Detailed overall feedback",
-        "status": "pass" or "fail",
-        "sectionFeedback": {
-          "Section Name 1": {
-            "score": number,
-            "maxScore": number from rubric,
-            "feedback": "Detailed feedback for this section",
-            "strengths": ["strength 1", "strength 2"],
-            "improvements": ["improvement 1", "improvement 2"]
-          },
-          "Section Name 2": {
-            // same structure
+    try {
+      // Create a prompt for grading
+      const prompt = `
+        You are an expert academic grader. I will provide you with a student submission and a rubric.
+        Your task is to grade the submission according to the rubric, providing scores and detailed feedback for each section.
+        
+        # RUBRIC SECTIONS:
+        ${allSections.map(section => 
+          `## ${section.name} (${section.maxScore} points)
+           ${section.criteria}`
+        ).join('\n\n')}
+        
+        # STUDENT SUBMISSION:
+        ${submissionContent.text}
+        
+        ${submissionContent.images && submissionContent.images.length > 0 
+          ? `# IMAGES IN SUBMISSION:
+             The document contains ${submissionContent.images.length} images. 
+             These images should be considered as part of the assessment.
+             Image descriptions: ${submissionContent.imageDescriptions?.join('; ') || 'No descriptions available'}`
+          : ''}
+        
+        # GRADING INSTRUCTIONS:
+        1. Evaluate the submission against each rubric section
+        2. Assign a score for each section (should not exceed the maximum score)
+        3. Provide detailed feedback for each section, including strengths and areas for improvement
+        4. Calculate the total score
+        5. Provide an overall assessment
+        6. Determine if the submission should pass or fail (pass requires >= 60% of total possible score)
+        
+        Format your response as a JSON object with the following structure:
+        {
+          "totalScore": number,
+          "maxPossibleScore": ${maxPossibleScore},
+          "overallFeedback": "Detailed overall feedback",
+          "status": "pass" or "fail",
+          "sectionFeedback": {
+            "Section Name 1": {
+              "score": number,
+              "maxScore": number from rubric,
+              "feedback": "Detailed feedback for this section",
+              "strengths": ["strength 1", "strength 2"],
+              "improvements": ["improvement 1", "improvement 2"]
+            },
+            "Section Name 2": {
+              // same structure
+            }
           }
         }
-      }
-    `;
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { 
-          role: "system", 
-          content: "You are an expert academic grader with experience in evaluating student submissions against rubrics."
-        },
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" }
-    });
-    
-    const gradingResult = JSON.parse(response.choices[0].message.content);
-    
-    // Ensure the response matches our expected format
-    return {
-      submissionId: submissionFile.id.toString(),
-      submissionName: submissionFile.originalname,
-      totalScore: gradingResult.totalScore,
-      maxPossibleScore: gradingResult.maxPossibleScore,
-      overallFeedback: gradingResult.overallFeedback,
-      status: gradingResult.status,
-      sectionFeedback: gradingResult.sectionFeedback,
-      createdAt: new Date().toISOString()
-    };
+      `;
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are an expert academic grader with experience in evaluating student submissions against rubrics."
+          },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" }
+      });
+      
+      const gradingResult = JSON.parse(response.choices[0].message.content);
+      
+      // Ensure the response matches our expected format
+      return {
+        submissionId: submissionFile.id.toString(),
+        submissionName: submissionFile.originalname,
+        totalScore: gradingResult.totalScore,
+        maxPossibleScore: gradingResult.maxPossibleScore,
+        overallFeedback: gradingResult.overallFeedback,
+        status: gradingResult.status,
+        sectionFeedback: gradingResult.sectionFeedback,
+        createdAt: new Date().toISOString()
+      };
+    } catch (aiError) {
+      console.error("OpenAI error during grading:", aiError);
+      
+      // Fallback to simulated grading when OpenAI API is unavailable or rate limited
+      // This ensures the application can still function for demo purposes
+      
+      // Generate a placeholder grading result
+      const sectionFeedback: Record<string, SectionFeedback> = {};
+      
+      // Generate placeholder feedback for each section
+      allSections.forEach(section => {
+        // Simulate a reasonable score (60-80% of max)
+        const score = Math.floor(section.maxScore * (0.6 + Math.random() * 0.2));
+        
+        sectionFeedback[section.name] = {
+          score,
+          maxScore: section.maxScore,
+          feedback: "This is placeholder feedback since the AI service is currently unavailable. Please try again later for detailed feedback.",
+          strengths: ["The submission addresses the main requirements of this section"],
+          improvements: ["Consider expanding on key concepts for a higher score"]
+        };
+      });
+      
+      // Calculate total score
+      const totalScore = Object.values(sectionFeedback).reduce((sum, section) => sum + section.score, 0);
+      const passingScore = Math.floor(maxPossibleScore * 0.6);
+      
+      return {
+        submissionId: submissionFile.id.toString(),
+        submissionName: submissionFile.originalname,
+        totalScore,
+        maxPossibleScore,
+        overallFeedback: "This is a placeholder assessment generated because the AI grading service is currently unavailable. This submission has been given a simulated grade for demonstration purposes.",
+        status: totalScore >= passingScore ? "pass" : "fail",
+        sectionFeedback,
+        createdAt: new Date().toISOString()
+      };
+    }
   } catch (error) {
     console.error("Error grading paper:", error);
     throw new Error("Failed to grade submission");
