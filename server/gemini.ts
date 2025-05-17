@@ -359,8 +359,9 @@ export async function gradePapersWithGemini(
     } catch (aiError) {
       console.error("Gemini error during grading:", aiError);
       
-      // Fallback to simulated grading when API is unavailable
-      return generateSimulatedGradingResult(allSections, submissionFile, maxPossibleScore);
+      // Return error result instead of simulated grading
+      const errorMessage = aiError instanceof Error ? aiError.message : "Unknown error with AI service";
+      return generateErrorResult(submissionFile, errorMessage);
     }
   } catch (error) {
     console.error("Error grading paper with Gemini:", error);
@@ -397,42 +398,20 @@ function getDefaultRubricSections(): RubricSection[] {
 }
 
 /**
- * Generate a simulated grading result when AI service is unavailable
+ * Generate an error result instead of simulated grading when AI service fails
  */
-function generateSimulatedGradingResult(
-  sections: RubricSection[],
+function generateErrorResult(
   submissionFile: File,
-  maxPossibleScore: number
+  errorMessage: string
 ): GradingResult {
-  // Generate a placeholder grading result
-  const sectionFeedback: Record<string, SectionFeedback> = {};
-  
-  // Generate placeholder feedback for each section
-  sections.forEach(section => {
-    // Simulate a reasonable score (60-80% of max)
-    const score = Math.floor(section.maxScore * (0.6 + Math.random() * 0.2));
-    
-    sectionFeedback[section.name] = {
-      score,
-      maxScore: section.maxScore,
-      feedback: "Gemini API rate limit exceeded. This is simulated feedback generated because we've hit the API's request limit. Try again in a few minutes or with a paid API key for higher limits.",
-      strengths: ["API rate limit exceeded - simulated strengths"],
-      improvements: ["API rate limit exceeded - simulated areas for improvement"]
-    };
-  });
-  
-  // Calculate total score
-  const totalScore = Object.values(sectionFeedback).reduce((sum, section) => sum + section.score, 0);
-  const passingScore = Math.floor(maxPossibleScore * 0.6);
-  
   return {
     submissionId: submissionFile.id.toString(),
     submissionName: submissionFile.originalname,
-    totalScore,
-    maxPossibleScore,
-    overallFeedback: "⚠️ Gemini API rate limit exceeded. We've generated a simulated assessment. For actual AI grading, please try again in a few minutes or consider upgrading to a paid Gemini API plan for higher quota limits.",
-    status: totalScore >= passingScore ? "pass" : "fail",
-    sectionFeedback,
+    totalScore: 0,
+    maxPossibleScore: 0,
+    overallFeedback: `⚠️ Error processing with Gemini AI: ${errorMessage}. Please try again later or contact support if the issue persists.`,
+    status: 'pending',
+    sectionFeedback: {},
     createdAt: new Date().toISOString()
   };
 }

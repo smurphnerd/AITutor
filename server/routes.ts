@@ -7,6 +7,7 @@ import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
 import { processFile } from "./fileProcessing";
 import { gradePapersWithGemini } from "./gemini";
+import { generateErrorGradingResult } from "./mockGrader";
 import { insertFileSchema } from "@shared/schema";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -273,7 +274,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (!submission) {
               throw new Error("Submission file is undefined");
             }
-            const result = await gradePapersWithGemini(rubricFiles, submission);
+
+            try {
+              const result = await gradePapersWithGemini(rubricFiles, submission);
+              
+              // If result was successful, use it
+              if (result) {
+                return result;
+              }
+            } catch (error) {
+              console.error("Error during AI grading:", error);
+              // Fall back to error result if Gemini fails
+              return generateErrorGradingResult(
+                submission, 
+                "AI service encountered an error processing your document. Please try again later."
+              );
+            }
             
             // Store result
             const currentJob = gradingJobs.get(jobId);
