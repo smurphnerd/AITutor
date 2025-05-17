@@ -47,28 +47,63 @@ async function processPdf(filePath: string) {
     // Get the number of pages
     const numPages = pdfDoc.getPageCount();
     
+    // Try direct PDF text extraction first
     try {
-      // Use Gemini to process the PDF and extract content
-      const result = await processPdfWithGemini(filePath);
-      return result;
-    } catch (aiError) {
-      console.error("Error using Gemini for PDF processing:", aiError);
+      // Import pdf-parse for reliable text extraction
+      const pdfParse = await import('pdf-parse');
       
-      // Fall back to basic PDF processing without AI
-      // Create a placeholder text with basic information
-      const fullText = `PDF document with ${numPages} pages. Content not extracted due to AI service limitations.`;
+      // Extract text from PDF
+      const pdfData = await pdfParse.default(dataBuffer);
       
-      // Add a generic image description if it appears to be a multi-page document
-      const imageDescriptions = [];
-      if (numPages > 1) {
-        imageDescriptions.push("This document may contain images or figures that couldn't be processed automatically.");
+      // Get the text content
+      const extractedText = pdfData.text || "";
+      
+      console.log(`PDF processed directly: ${numPages} pages, ${extractedText.length} characters extracted`);
+      
+      // Check if we got meaningful text content
+      if (extractedText.trim().length > 50) {
+        // We have good text content from pdf-parse
+        const imageDescriptions = [];
+        if (numPages > 1) {
+          imageDescriptions.push("This document may contain images or figures that couldn't be processed automatically.");
+        }
+        
+        return { 
+          text: extractedText, 
+          images: [], 
+          imageDescriptions 
+        };
+      } else {
+        console.log("Limited text extracted with pdf-parse, trying AI extraction as fallback");
+        // Not enough text extracted, try AI-based extraction
+        throw new Error("Insufficient text extracted with pdf-parse");
       }
+    } catch (directError) {
+      console.log("Direct PDF parsing failed, trying AI extraction:", directError.message);
       
-      return { text: fullText, images: [], imageDescriptions };
+      // Fallback to AI extraction
+      try {
+        // Use Gemini to process the PDF and extract content
+        const result = await processPdfWithGemini(filePath);
+        return result;
+      } catch (aiError) {
+        console.error("Error using Gemini for PDF processing:", aiError);
+        
+        // Both methods failed, return basic information
+        const fullText = `PDF document with ${numPages} pages. Content not fully extracted, but processing will attempt to continue.`;
+        
+        // Add a generic image description if it appears to be a multi-page document
+        const imageDescriptions = [];
+        if (numPages > 1) {
+          imageDescriptions.push("This document may contain images or figures that couldn't be processed automatically.");
+        }
+        
+        return { text: fullText, images: [], imageDescriptions };
+      }
     }
   } catch (error) {
     console.error("Error processing PDF:", error);
-    throw new Error("Failed to process PDF");
+    throw new Error("Failed to process PDF: " + (error instanceof Error ? error.message : String(error)));
   }
 }
 
