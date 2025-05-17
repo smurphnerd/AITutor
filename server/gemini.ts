@@ -98,7 +98,18 @@ export async function processPdfWithGemini(filePath: string): Promise<{ text: st
       }
     ];
     
-    // Generate content using Gemini Pro Vision
+    // Add debugging for Gemini API connection
+    console.log("Attempting to connect to Gemini API with flash-vision model...");
+    console.log("API Key present:", !!process.env.GEMINI_API_KEY);
+    if (process.env.GEMINI_API_KEY) {
+      // Log first few characters only for security
+      const keyStart = process.env.GEMINI_API_KEY.substring(0, 4);
+      console.log("API Key starts with:", keyStart + "...");
+    } else {
+      console.log("Warning: GEMINI_API_KEY environment variable is not set");
+    }
+    
+    // Generate content using Gemini Vision
     const result = await geminiProVision.generateContent({
       contents: [{ role: "user", parts: promptParts }],
       generationConfig: {
@@ -107,6 +118,8 @@ export async function processPdfWithGemini(filePath: string): Promise<{ text: st
       },
       safetySettings
     });
+    
+    console.log("Successfully received response from Gemini API");
     
     const response = result.response;
     const fullText = response.text();
@@ -125,6 +138,12 @@ export async function processPdfWithGemini(filePath: string): Promise<{ text: st
     return { text: fullText, images, imageDescriptions };
   } catch (error) {
     console.error("Error processing PDF with Gemini:", error);
+    
+    // Extract and log error details
+    const err = error as any;
+    if (err.status) console.error("HTTP Status:", err.status);
+    if (err.statusText) console.error("Status Text:", err.statusText);
+    if (err.errorDetails) console.error("Error Details:", JSON.stringify(err.errorDetails, null, 2));
     
     // Provide a fallback response
     return { 
