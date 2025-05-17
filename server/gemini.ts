@@ -2,9 +2,16 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 import fs from "fs/promises";
 import path from "path";
 import { File } from "@shared/schema";
+import config from './config';
 
-// Initialize the Google Generative AI with API key
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Check if Gemini API key is available
+if (!config.ai.gemini) {
+  console.warn('GEMINI_API_KEY is not set in environment variables or .env file');
+  console.warn('Gemini AI functionality will not work correctly');
+}
+
+// Initialize the Google Generative AI with API key from config
+const genAI = new GoogleGenerativeAI(config.ai.gemini || "");
 
 // Use more cost-effective Gemini Flash model for text generation
 const geminiPro = genAI.getGenerativeModel({ 

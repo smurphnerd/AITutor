@@ -2,9 +2,16 @@ import OpenAI from "openai";
 import { File } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
+import config from './config';
+
+// Check if OpenAI API key is available
+if (!config.ai.openai) {
+  console.warn('OPENAI_API_KEY is not set in environment variables or .env file');
+  console.warn('OpenAI functionality will not work correctly');
+}
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "sk-your-key-here" });
+const openai = new OpenAI({ apiKey: config.ai.openai || "" });
 
 interface RubricSection {
   name: string;
