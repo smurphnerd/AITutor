@@ -275,28 +275,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
               throw new Error("Submission file is undefined");
             }
 
+            let result;
             try {
-              const result = await gradePapersWithGemini(rubricFiles, submission);
-              
-              // If result was successful, use it
-              if (result) {
-                return result;
-              }
+              // Attempt to grade with Gemini
+              result = await gradePapersWithGemini(rubricFiles, submission);
             } catch (error) {
               console.error("Error during AI grading:", error);
               // Fall back to error result if Gemini fails
-              return generateErrorGradingResult(
+              result = generateErrorGradingResult(
                 submission, 
                 "AI service encountered an error processing your document. Please try again later."
               );
             }
             
-            // Store result
+            // Store result (using our result from either the successful call or the error handler)
             const currentJob = gradingJobs.get(jobId);
-            gradingJobs.set(jobId, {
-              ...currentJob,
-              results: [...currentJob.results, result]
-            });
+            if (currentJob && result) {
+              gradingJobs.set(jobId, {
+                ...currentJob,
+                results: [...currentJob.results, result]
+              });
+            }
           }
           
           // Mark job as complete
