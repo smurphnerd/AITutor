@@ -1,10 +1,26 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import config from "./config";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Log available AI services in development mode
+if (config.nodeEnv === 'development') {
+  const availableServices = [];
+  if (config.ai.openai) availableServices.push('OpenAI');
+  if (config.ai.gemini) availableServices.push('Gemini');
+  if (config.ai.anthropic) availableServices.push('Anthropic');
+  
+  log(`Environment: ${config.nodeEnv}`);
+  if (availableServices.length > 0) {
+    log(`Available AI services: ${availableServices.join(', ')}`);
+  } else {
+    log('Warning: No AI services configured. Set API keys in .env file.');
+  }
+}
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -56,10 +72,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Get port from config, default to 5000
+  // This serves both the API and the client.
+  // For Replit, port 5000 is the only port that is not firewalled.
+  const port = config.port || 5000;
   server.listen({
     port,
     host: "0.0.0.0",
