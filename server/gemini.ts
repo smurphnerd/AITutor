@@ -166,18 +166,27 @@ export async function parseRubricWithGemini(rubricFile: File): Promise<RubricSec
       const content = await fs.readFile(contentPath, 'utf-8');
       const parsedContent = JSON.parse(content);
       
-      // Use Gemini to extract the rubric sections
+      // Check if we have text content to analyze
+      if (!parsedContent.text || parsedContent.text.trim().length === 0) {
+        console.log("No text content found in the rubric file, using default sections");
+        return getDefaultRubricSections();
+      }
+      
+      console.log("Extracted text from rubric file:", parsedContent.text.substring(0, 200) + "...");
+      
+      // Use Gemini to extract the rubric sections - with improved prompt
       const prompt = `
-        I have a rubric document with the following content:
+        Please analyze this rubric document content and extract the rubric sections:
         
         ${parsedContent.text}
         
-        Please analyze this content and extract the rubric sections. For each section, provide:
+        For each section, identify:
         1. The section name/title
         2. The maximum score for that section
         3. The criteria or description for that section
         
-        Format your response as a JSON array of objects with the following structure:
+        IMPORTANT: Respond ONLY with a JSON array. Do not include any explanatory text, markdown formatting, or code blocks.
+        The response should be a valid JSON array with this exact structure:
         [
           {
             "name": "Section Name",
@@ -187,6 +196,7 @@ export async function parseRubricWithGemini(rubricFile: File): Promise<RubricSec
         ]
       `;
       
+      console.log("Sending rubric text to Gemini for analysis");
       const result = await geminiPro.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
@@ -198,39 +208,122 @@ export async function parseRubricWithGemini(rubricFile: File): Promise<RubricSec
       
       const response = result.response;
       let jsonText = response.text();
+      console.log("Raw Gemini response:", jsonText.substring(0, 100) + "...");
       
-      // If the response is wrapped in markdown code blocks, extract just the JSON part
-      if (jsonText.includes("```json")) {
-        jsonText = jsonText.replace(/```json\s*|\s*```/g, "");
+      // Clean up the response to extract only the JSON part
+      // Remove any markdown code blocks
+      jsonText = jsonText.replace(/```json\s*|\s*```/g, "");
+      
+      // Try to find JSON array pattern using regex
+      const jsonMatch = jsonText.match(/\[\s*\{[\s\S]+\}\s*\]/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[0];
       }
+      
+      // Another approach: extract everything between the first '[' and the last ']'
+      if (jsonText.includes('[') && jsonText.includes(']')) {
+        const startIndex = jsonText.indexOf('[');
+        const endIndex = jsonText.lastIndexOf(']') + 1;
+        if (startIndex < endIndex) {
+          jsonText = jsonText.substring(startIndex, endIndex);
+        }
+      }
+      
+      console.log("Cleaned JSON to parse:", jsonText.substring(0, 100) + "...");
       
       let parsed;
       try {
         parsed = JSON.parse(jsonText);
+        console.log("Successfully parsed JSON response");
       } catch (error) {
         console.error("Error parsing JSON from Gemini response:", error);
         console.log("Response text was:", jsonText);
-        // Fall back to default sections
-        parsed = getDefaultRubricSections();
+        
+        // If we can't parse the JSON, create a simple structure from the rubric text
+        console.log("Creating basic sections from rubric text");
+        return createBasicSectionsFromText(parsedContent.text);
       }
       
       // Check if we got a valid array of sections
-      if (Array.isArray(parsed)) {
-        return parsed;
-      } else if (parsed.sections && Array.isArray(parsed.sections)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Validate each section has the required fields
+        const validSections = parsed.filter(section => 
+          section && 
+          typeof section.name === 'string' && 
+          (typeof section.maxScore === 'number' || !isNaN(parseInt(section.maxScore)))
+        );
+        
+        if (validSections.length > 0) {
+          // Normalize sections to ensure correct types
+          return validSections.map(section => ({
+            name: section.name,
+            maxScore: typeof section.maxScore === 'number' ? section.maxScore : parseInt(section.maxScore),
+            criteria: section.criteria || `Criteria for ${section.name}`
+          }));
+        }
+      } else if (parsed && parsed.sections && Array.isArray(parsed.sections) && parsed.sections.length > 0) {
         return parsed.sections;
-      } else {
-        // Fall back to default sections
-        return getDefaultRubricSections();
       }
+      
+      // If we reach here, create sections from the text
+      return createBasicSectionsFromText(parsedContent.text);
+      
     } catch (readError) {
-      console.error("Error reading content file or parsing Gemini response, falling back to default sections:", readError);
+      console.error("Error reading content file or parsing Gemini response:", readError);
       return getDefaultRubricSections();
     }
   } catch (error) {
     console.error("Error parsing rubric with Gemini:", error);
     return getDefaultRubricSections();
   }
+}
+
+/**
+ * Create basic rubric sections by analyzing text patterns
+ */
+function createBasicSectionsFromText(text: string): RubricSection[] {
+  console.log("Creating basic sections from text analysis");
+  
+  // Look for common section patterns in academic rubrics
+  const sections: RubricSection[] = [];
+  
+  // Try to identify section headings with potential point values
+  const sectionRegex = /(?:^|\n)([A-Z][^.!?:]*(?:section|criteria|category|part|area)?[^.!?:]*)(?:\s*[-:]\s*|\s*\(|\s*\[\s*|\s+)(?:up to\s+)?(\d+)(?:\s*(?:points?|marks?|pts?|\/\d+|%))/gi;
+  
+  let match;
+  let remainingText = text;
+  let lastIndex = 0;
+  
+  while ((match = sectionRegex.exec(text)) !== null) {
+    const name = match[1].trim();
+    const maxScore = parseInt(match[2]);
+    
+    // Extract criteria (text between this match and next match or end)
+    const startPos = match.index + match[0].length;
+    const endPos = text.indexOf(match[0], startPos); // Find next section heading
+    
+    let criteria = "";
+    if (endPos !== -1) {
+      criteria = text.substring(startPos, endPos).trim();
+    } else {
+      criteria = text.substring(startPos).trim();
+    }
+    
+    sections.push({
+      name,
+      maxScore,
+      criteria: criteria.substring(0, 200) // Limit length 
+    });
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // If we couldn't identify any sections, create default ones
+  if (sections.length === 0) {
+    return getDefaultRubricSections();
+  }
+  
+  return sections;
 }
 
 /**
@@ -241,6 +334,8 @@ export async function gradePapersWithGemini(
   submissionFile: File
 ): Promise<GradingResult> {
   try {
+    console.log("Starting grading process using extracted text with Gemini...");
+    
     // Parse all rubrics
     const rubricSections = await Promise.all(
       rubricFiles.map(file => parseRubricWithGemini(file))
@@ -248,6 +343,16 @@ export async function gradePapersWithGemini(
     
     // Flatten all sections from all rubrics
     const allSections = rubricSections.flat();
+    
+    if (allSections.length === 0) {
+      console.log("No valid rubric sections found, using default sections");
+      return generateErrorResult(
+        submissionFile, 
+        "Unable to extract valid rubric sections from the provided files."
+      );
+    }
+    
+    console.log(`Successfully extracted ${allSections.length} rubric sections`);
     
     // Read submission content
     const submissionContentPath = path.join(
@@ -259,65 +364,78 @@ export async function gradePapersWithGemini(
     try {
       const content = await fs.readFile(submissionContentPath, 'utf-8');
       submissionContent = JSON.parse(content);
+      
+      if (!submissionContent.text || submissionContent.text.trim().length === 0) {
+        console.error("No text content found in submission");
+        return generateErrorResult(
+          submissionFile, 
+          "No readable text content found in the submission. Please check the file format."
+        );
+      }
+      
+      console.log("Extracted submission text:", submissionContent.text.substring(0, 200) + "...");
+      
+      // Check for image descriptions to include in grading
+      const imageDescriptions = submissionContent.imageDescriptions || [];
+      if (imageDescriptions.length > 0) {
+        console.log(`Found ${imageDescriptions.length} image descriptions to include in grading`);
+      }
+      
     } catch (error) {
       console.error("Error reading submission content:", error);
-      throw new Error("Failed to read submission content");
+      return generateErrorResult(
+        submissionFile,
+        "Failed to read submission content"
+      );
     }
     
     // Calculate total possible score
     const maxPossibleScore = allSections.reduce((sum, section) => sum + section.maxScore, 0);
+    console.log(`Maximum possible score based on rubric: ${maxPossibleScore}`);
     
     try {
-      // Create a prompt for grading
+      // Create a more structured prompt for grading that works with extracted text
       const prompt = `
-        You are an expert academic grader. I will provide you with a student submission and a rubric.
-        Your task is to grade the submission according to the rubric, providing scores and detailed feedback for each section.
+        As an expert academic grader, please evaluate the student submission based on the rubric sections below.
         
-        # RUBRIC SECTIONS:
-        ${allSections.map(section => 
-          `## ${section.name} (${section.maxScore} points)
-           ${section.criteria}`
-        ).join('\n\n')}
+        ## RUBRIC:
+        ${JSON.stringify(allSections, null, 2)}
         
-        # STUDENT SUBMISSION:
+        ## STUDENT SUBMISSION TEXT:
         ${submissionContent.text}
         
-        ${submissionContent.images && submissionContent.images.length > 0 
-          ? `# IMAGES IN SUBMISSION:
-             The document contains ${submissionContent.images.length} images. 
-             These images should be considered as part of the assessment.
-             Image descriptions: ${submissionContent.imageDescriptions?.join('; ') || 'No descriptions available'}`
+        ${submissionContent.imageDescriptions && submissionContent.imageDescriptions.length > 0 
+          ? `## IMAGE DESCRIPTIONS IN SUBMISSION:
+             ${submissionContent.imageDescriptions.join('\n')}`
           : ''}
         
-        # GRADING INSTRUCTIONS:
-        1. Evaluate the submission against each rubric section
-        2. Assign a score for each section (should not exceed the maximum score)
-        3. Provide detailed feedback for each section, including strengths and areas for improvement
-        4. Calculate the total score
-        5. Provide an overall assessment
-        6. Determine if the submission should pass or fail (pass requires >= 60% of total possible score)
+        ## INSTRUCTIONS:
+        1. Evaluate the text against each rubric section
+        2. For each section, assign a score not exceeding the maximum
+        3. Provide specific feedback with strengths and improvement areas
+        4. Calculate total score and determine if submission passes (60% threshold)
         
-        Format your response as a JSON object with the following structure:
+        ## RESPONSE FORMAT - IMPORTANT!
+        Return ONLY a valid JSON object without any explanation text or markdown. Format exactly as:
+        
         {
-          "totalScore": number,
+          "totalScore": <number>,
           "maxPossibleScore": ${maxPossibleScore},
-          "overallFeedback": "Detailed overall feedback",
-          "status": "pass" or "fail",
+          "overallFeedback": "<overall assessment>",
+          "status": "<pass or fail>",
           "sectionFeedback": {
-            "Section Name 1": {
-              "score": number,
-              "maxScore": number from rubric,
-              "feedback": "Detailed feedback for this section",
-              "strengths": ["strength 1", "strength 2"],
-              "improvements": ["improvement 1", "improvement 2"]
-            },
-            "Section Name 2": {
-              // same structure
+            "<exact section name>": {
+              "score": <number>,
+              "maxScore": <section max score>,
+              "feedback": "<specific feedback>",
+              "strengths": ["<strength 1>", "<strength 2>"],
+              "improvements": ["<area to improve 1>", "<area to improve 2>"]
             }
           }
         }
       `;
       
+      console.log("Sending grading request to Gemini with extracted text...");
       const result = await geminiPro.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
