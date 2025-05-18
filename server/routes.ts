@@ -275,29 +275,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               throw new Error("Submission file is undefined");
             }
 
-            let result;
-            try {
-              // First try to grade with OpenAI (better for detailed feedback)
-              console.log("Attempting to grade with OpenAI...");
-              const { gradePapers } = await import('./openai');
-              result = await gradePapers(rubricFiles, submission);
-              
-            } catch (openaiError) {
-              console.error("Error during OpenAI grading:", openaiError);
-              
-              try {
-                // Fall back to Gemini if OpenAI fails
-                console.log("OpenAI grading failed, falling back to Gemini...");
-                result = await gradePapersWithGemini(rubricFiles, submission);
-              } catch (geminiError) {
-                console.error("Error during Gemini AI grading:", geminiError);
-                // Fall back to error result if both AI services fail
-                result = generateErrorGradingResult(
-                  submission, 
-                  "AI services encountered errors processing your document. Please try again later."
-                );
-              }
-            }
+            // Import our new modular grading service that automatically selects the right AI provider
+            const { gradePapers } = await import('./services/gradingService');
+            
+            // Process the submission using the configured AI provider
+            const result = await gradePapers(rubricFiles, submission);
             
             // Store result (using our result from either the successful call or the error handler)
             const currentJob = gradingJobs.get(jobId);
