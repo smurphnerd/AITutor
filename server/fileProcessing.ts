@@ -40,11 +40,11 @@ export async function processFile(file: File) {
  */
 async function processPdf(filePath: string) {
   try {
-    // Use our dedicated utility for PDF text extraction
-    const { extractTextFromPdf } = await import('./pdfUtils');
+    // Use our direct PDF parser that avoids the problematic import
+    const { parsePdf } = await import('./pdf-parser');
     
     // Extract text directly from the PDF
-    const result = await extractTextFromPdf(filePath);
+    const result = await parsePdf(filePath);
     
     if (result.success && result.text.length > 50) {
       console.log(`PDF processed successfully: ${result.numPages} pages, ${result.text.length} characters`);
