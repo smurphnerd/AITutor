@@ -5,34 +5,29 @@
  * Change these settings to experiment with different AI models and parameters.
  */
 
-// Available OpenAI models
+// Available AI providers
+export enum AIProvider {
+  OPENAI = 'openai',
+  GEMINI = 'gemini',
+  ANTHROPIC = 'anthropic'
+}
+
+// Model definitions with provider information
 export const OPENAI_MODELS = {
-  // Text generation models
   GPT_4: "gpt-4",
   GPT_4_TURBO: "gpt-4-turbo",
   GPT_4O: "gpt-4o", // the newest OpenAI model released May 13, 2024
   GPT_35_TURBO: "gpt-3.5-turbo",
-  
-  // Image generation models
-  DALL_E_3: "dall-e-3",
-  DALL_E_2: "dall-e-2",
-  
-  // Embedding models
-  TEXT_EMBEDDING_3: "text-embedding-3-small"
+  DALL_E_3: "dall-e-3"
 };
 
-// Available Gemini models
 export const GEMINI_MODELS = {
-  // Text generation models
-  GEMINI_PRO: "gemini-pro", // More capable but may not be available in all regions
-  GEMINI_1_5_FLASH: "gemini-1.5-flash", // Faster, more cost-effective option
-  
-  // Vision models (for processing images)
-  GEMINI_PRO_VISION: "gemini-pro-vision", // Handles images + text in some regions
-  GEMINI_1_5_FLASH_VISION: "gemini-1.5-flash-vision" // Newer multimodal option
+  GEMINI_PRO: "gemini-pro",
+  GEMINI_1_5_FLASH: "gemini-1.5-flash",
+  GEMINI_PRO_VISION: "gemini-pro-vision",
+  GEMINI_1_5_FLASH_VISION: "gemini-1.5-flash-vision"
 };
 
-// Anthropic Claude models (for future implementation)
 export const ANTHROPIC_MODELS = {
   CLAUDE_3_OPUS: "claude-3-opus-20240229",
   CLAUDE_3_SONNET: "claude-3-sonnet-20240229",
@@ -40,39 +35,36 @@ export const ANTHROPIC_MODELS = {
 };
 
 // ACTIVE MODEL CONFIGURATION
-// -------------------------
 // Change these settings to use different models
 
-// Active model selections
+// Define which models to use for different purposes
 export const ACTIVE_MODELS = {
-  // Primary text processing model (used for most tasks)
-  PRIMARY_TEXT_MODEL: OPENAI_MODELS.GPT_4O,
+  // Primary text processing model
+  PRIMARY_TEXT_MODEL: GEMINI_MODELS.GEMINI_PRO,
+  PRIMARY_TEXT_PROVIDER: AIProvider.GEMINI,
   
-  // Backup text processing model (used if primary fails)
+  // Backup text processing model
   BACKUP_TEXT_MODEL: GEMINI_MODELS.GEMINI_1_5_FLASH,
+  BACKUP_TEXT_PROVIDER: AIProvider.GEMINI,
   
-  // Vision/multimodal model (used for processing images/PDFs)
+  // Vision/multimodal model 
   VISION_MODEL: GEMINI_MODELS.GEMINI_1_5_FLASH_VISION,
+  VISION_PROVIDER: AIProvider.GEMINI,
   
   // Model used for grading assignments
-  GRADING_MODEL: OPENAI_MODELS.GPT_4O,
+  GRADING_MODEL: GEMINI_MODELS.GEMINI_PRO,
+  GRADING_PROVIDER: AIProvider.GEMINI,
   
-  // Model used for generating images (if needed)
-  IMAGE_GENERATION_MODEL: OPENAI_MODELS.DALL_E_3
+  // Image generation model
+  IMAGE_GENERATION_MODEL: OPENAI_MODELS.DALL_E_3,
+  IMAGE_GENERATION_PROVIDER: AIProvider.OPENAI
 };
 
 // Model parameters for text generation
 export const TEXT_PARAMETERS = {
-  // Controls randomness (0-1): lower = more deterministic
   temperature: 0.2,
-  
-  // Nucleus sampling parameter (0-1): limits token selection to most likely options
   topP: 0.9,
-  
-  // Number of most likely tokens to consider (higher = more diverse)
   topK: 40,
-  
-  // Maximum output length
   maxOutputTokens: 4096
 };
 
@@ -86,12 +78,8 @@ export const VISION_PARAMETERS = {
 
 // Model parameters specifically for grading
 export const GRADING_PARAMETERS = {
-  // Lower temperature for more consistent, objective grading
   temperature: 0.1,
-  
-  // Higher token limit to accommodate detailed feedback
   maxOutputTokens: 8192,
-  
   topP: 0.95,
   topK: 40
 };
