@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { File } from "@shared/schema";
 import config from './config';
+import { ACTIVE_MODELS, GRADING_PARAMETERS, TEXT_PARAMETERS, VISION_PARAMETERS } from './aiModels.config';
 
 // Check if Gemini API key is available
 if (!config.ai.gemini) {
@@ -13,25 +14,33 @@ if (!config.ai.gemini) {
 // Initialize the Google Generative AI with API key from config
 const genAI = new GoogleGenerativeAI(config.ai.gemini || "");
 
-// Use Gemini-1.5-flash for reliable and fast responses
+// Initialize models based on configuration
 const geminiPro = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash",
+  model: ACTIVE_MODELS.BACKUP_TEXT_MODEL,
   generationConfig: {
-    temperature: 0.2,
-    topP: 0.8,
-    topK: 40
+    temperature: TEXT_PARAMETERS.temperature,
+    topP: TEXT_PARAMETERS.topP,
+    topK: TEXT_PARAMETERS.topK,
+    maxOutputTokens: TEXT_PARAMETERS.maxOutputTokens
   }
 });
 
-// Use Gemini 1.5 flash model with vision capabilities
+// Log active model configuration
+console.log(`Gemini is using model: ${ACTIVE_MODELS.BACKUP_TEXT_MODEL} as backup text model`);
+
+// Use vision-capable model from configuration
 const geminiProVision = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash-vision", 
+  model: ACTIVE_MODELS.VISION_MODEL, 
   generationConfig: {
-    temperature: 0.2,
-    topP: 0.8,
-    topK: 40
+    temperature: VISION_PARAMETERS.temperature,
+    topP: VISION_PARAMETERS.topP,
+    topK: VISION_PARAMETERS.topK,
+    maxOutputTokens: VISION_PARAMETERS.maxOutputTokens
   }
 });
+
+// Log vision model configuration
+console.log(`Gemini is using model: ${ACTIVE_MODELS.VISION_MODEL} for vision/PDF processing`);
 
 // Set safety settings
 const safetySettings = [

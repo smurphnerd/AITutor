@@ -3,6 +3,7 @@ import { File } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
 import config from './config';
+import { ACTIVE_MODELS, GRADING_PARAMETERS, TEXT_PARAMETERS } from './aiModels.config';
 
 // Check if OpenAI API key is available
 if (!config.ai.openai) {
@@ -10,8 +11,11 @@ if (!config.ai.openai) {
   console.warn('OpenAI functionality will not work correctly');
 }
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+// Initialize OpenAI client
 const openai = new OpenAI({ apiKey: config.ai.openai || "" });
+
+// Log active model configuration
+console.log(`OpenAI is using model: ${ACTIVE_MODELS.GRADING_MODEL} for grading`);
 
 interface RubricSection {
   name: string;
@@ -221,7 +225,7 @@ export async function gradePapers(
       `;
       
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: ACTIVE_MODELS.GRADING_MODEL,
         messages: [
           { 
             role: "system", 
@@ -229,6 +233,8 @@ export async function gradePapers(
           },
           { role: "user", content: prompt }
         ],
+        temperature: GRADING_PARAMETERS.temperature,
+        max_tokens: GRADING_PARAMETERS.maxOutputTokens,
         response_format: { type: "json_object" }
       });
       
