@@ -117,12 +117,15 @@ export async function processPdfWithGemini(filePath: string): Promise<{ text: st
       console.log("Warning: GEMINI_API_KEY environment variable is not set");
     }
     
-    // We'll try to check which models are available
+    // Check if the API key is valid by trying to generate a simple response
     try {
-      const models = await genAI.listModels();
-      console.log("Available Gemini models:", models.models.map(m => m.name));
-    } catch (modelError) {
-      console.log("Could not list available models:", modelError.message);
+      const testResponse = await geminiPro.generateContent({
+        contents: [{ role: "user", parts: [{ text: "List available AI models" }] }]
+      });
+      console.log("Gemini API connection successful");
+    } catch (apiError) {
+      const error = apiError as Error;
+      console.log("Error connecting to Gemini API:", error.message);
     }
     
     // Generate content using Gemini Vision
