@@ -415,7 +415,7 @@ export async function gradePapersWithGemini(
     try {
       // Create a more structured prompt for grading that works with extracted text
       const prompt = `
-        As an expert academic grader, please evaluate the student submission based on the rubric sections below.
+        As an expert academic grader, please evaluate the student submission against ONLY the rubric sections provided below.
         
         ## RUBRIC:
         ${JSON.stringify(allSections, null, 2)}
@@ -428,11 +428,19 @@ export async function gradePapersWithGemini(
              ${submissionContent.imageDescriptions.join('\n')}`
           : ''}
         
-        ## INSTRUCTIONS:
-        1. Evaluate the text against each rubric section
-        2. For each section, assign a score not exceeding the maximum
-        3. Provide specific feedback with strengths and improvement areas
-        4. Calculate total score and determine if submission passes (60% threshold)
+        ## GRADING REQUIREMENTS:
+        1. ONLY evaluate against the rubric sections provided - DO NOT add any sections not in the rubric (e.g., do not add generic sections like "Introduction" or "Literature Review" unless they are explicitly in the rubric)
+        2. For each section, assign a score not exceeding the maximum score shown in the rubric
+        3. Provide DETAILED, SPECIFIC feedback with DIRECT QUOTES and EXAMPLES from the submission
+        4. For each strength and improvement area, include at least one specific example from the actual text
+        5. Calculate total score and determine if submission passes (60% threshold)
+        
+        ## FEEDBACK STYLE REQUIREMENTS:
+        1. Be specific and actionable - cite page numbers, paragraphs, or exact quotes when possible
+        2. Point to specific sections that could be improved with clear recommendations
+        3. Highlight specific strengths with examples of what was done well
+        4. Do not use generic feedback - every piece of feedback must reference specific content from the submission
+        5. Do not use template responses or placeholder text
         
         ## RESPONSE FORMAT - IMPORTANT!
         Return ONLY a valid JSON object without any explanation text or markdown. Format exactly as:
@@ -440,15 +448,15 @@ export async function gradePapersWithGemini(
         {
           "totalScore": <number>,
           "maxPossibleScore": ${maxPossibleScore},
-          "overallFeedback": "<overall assessment>",
+          "overallFeedback": "<detailed overall assessment with specific examples>",
           "status": "<pass or fail>",
           "sectionFeedback": {
-            "<exact section name>": {
+            "<exact section name from rubric>": {
               "score": <number>,
               "maxScore": <section max score>,
-              "feedback": "<specific feedback>",
-              "strengths": ["<strength 1>", "<strength 2>"],
-              "improvements": ["<area to improve 1>", "<area to improve 2>"]
+              "feedback": "<specific feedback with examples>",
+              "strengths": ["<strength with specific example>", "<strength with specific example>"],
+              "improvements": ["<specific improvement area with example>", "<specific improvement area with example>"]
             }
           }
         }
@@ -512,24 +520,39 @@ export async function gradePapersWithGemini(
 function getDefaultRubricSections(): RubricSection[] {
   return [
     {
-      name: "Introduction & Literature Review",
+      name: "Project Charter",
+      maxScore: 30,
+      criteria: "Clear project scope, objectives, deliverables and success criteria"
+    },
+    {
+      name: "Risk Management",
+      maxScore: 30,
+      criteria: "Comprehensive risk identification, assessment, and mitigation strategies"
+    },
+    {
+      name: "Quality Management",
+      maxScore: 30,
+      criteria: "Appropriate quality standards, assurance processes, and control measures"
+    },
+    {
+      name: "Stakeholder Analysis",
+      maxScore: 30,
+      criteria: "Thorough stakeholder identification, assessment of interests and influence"
+    },
+    {
+      name: "Communication Plan",
+      maxScore: 30,
+      criteria: "Well-defined communication strategy, methods, and frequency for each stakeholder"
+    },
+    {
+      name: "Documentation & Presentation",
       maxScore: 20,
-      criteria: "Quality of introduction and literature review"
+      criteria: "Professional documentation, clear writing, proper formatting and organization"
     },
     {
-      name: "Methodology",
-      maxScore: 20,
-      criteria: "Appropriateness and execution of research methodology"
-    },
-    {
-      name: "Results & Discussion",
-      maxScore: 50,
-      criteria: "Quality of results presentation and discussion"
-    },
-    {
-      name: "Conclusion & References",
-      maxScore: 10,
-      criteria: "Quality of conclusion and proper referencing"
+      name: "Team Contribution",
+      maxScore: 30,
+      criteria: "Evidence of team collaboration, balanced contribution, and effective teamwork"
     }
   ];
 }

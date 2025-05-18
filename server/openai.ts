@@ -90,27 +90,42 @@ async function parseRubric(rubricFile: File): Promise<RubricSection[]> {
     } catch (readError) {
       console.error("Error reading content file, falling back to default sections:", readError);
       
-      // Fall back to default sections if we can't parse the file
+      // Fall back to default sections for project management assignments
       return [
         {
-          name: "Introduction & Literature Review",
+          name: "Project Charter",
+          maxScore: 30,
+          criteria: "Clear project scope, objectives, deliverables and success criteria"
+        },
+        {
+          name: "Risk Management",
+          maxScore: 30,
+          criteria: "Comprehensive risk identification, assessment, and mitigation strategies"
+        },
+        {
+          name: "Quality Management",
+          maxScore: 30,
+          criteria: "Appropriate quality standards, assurance processes, and control measures"
+        },
+        {
+          name: "Stakeholder Analysis",
+          maxScore: 30,
+          criteria: "Thorough stakeholder identification, assessment of interests and influence"
+        },
+        {
+          name: "Communication Plan",
+          maxScore: 30,
+          criteria: "Well-defined communication strategy, methods, and frequency for each stakeholder"
+        },
+        {
+          name: "Documentation & Presentation",
           maxScore: 20,
-          criteria: "Quality of introduction and literature review"
+          criteria: "Professional documentation, clear writing, proper formatting and organization"
         },
         {
-          name: "Methodology",
-          maxScore: 20,
-          criteria: "Appropriateness and execution of research methodology"
-        },
-        {
-          name: "Results & Discussion",
-          maxScore: 50,
-          criteria: "Quality of results presentation and discussion"
-        },
-        {
-          name: "Conclusion & References",
-          maxScore: 10,
-          criteria: "Quality of conclusion and proper referencing"
+          name: "Team Contribution",
+          maxScore: 30,
+          criteria: "Evidence of team collaboration, balanced contribution, and effective teamwork"
         }
       ];
     }
