@@ -13,9 +13,9 @@ if (!config.ai.gemini) {
 // Initialize the Google Generative AI with API key from config
 const genAI = new GoogleGenerativeAI(config.ai.gemini || "");
 
-// Use more cost-effective Gemini Flash model for text generation
+// Use Gemini Pro for more detailed and thoughtful responses
 const geminiPro = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash",
+  model: "gemini-pro",
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,
@@ -466,8 +466,10 @@ export async function gradePapersWithGemini(
       const result = await geminiPro.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4096
+          temperature: 0.1, // Lower temperature for more consistent responses
+          maxOutputTokens: 8192, // Increased token limit for more detailed feedback
+          topP: 0.95, // Slightly higher top_p for more nuanced language while keeping it focused
+          topK: 40
         },
         safetySettings
       });
