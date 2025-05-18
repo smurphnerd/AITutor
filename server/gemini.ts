@@ -63,11 +63,7 @@ const safetySettings = [
   },
 ];
 
-interface RubricSection {
-  name: string;
-  maxScore: number;
-  criteria: string;
-}
+// Using RubricSection interface imported from rubrics.config.ts
 
 interface SectionFeedback {
   score: number;
@@ -528,44 +524,13 @@ export async function gradePapersWithGemini(
 /**
  * Generate default rubric sections when parsing fails
  */
+/**
+ * Default rubric sections to use when none can be extracted
+ * Uses centralized configuration from rubrics.config.ts
+ */
 function getDefaultRubricSections(): RubricSection[] {
-  return [
-    {
-      name: "Project Charter",
-      maxScore: 30,
-      criteria: "Clear project scope, objectives, deliverables and success criteria"
-    },
-    {
-      name: "Risk Management",
-      maxScore: 30,
-      criteria: "Comprehensive risk identification, assessment, and mitigation strategies"
-    },
-    {
-      name: "Quality Management",
-      maxScore: 30,
-      criteria: "Appropriate quality standards, assurance processes, and control measures"
-    },
-    {
-      name: "Stakeholder Analysis",
-      maxScore: 30,
-      criteria: "Thorough stakeholder identification, assessment of interests and influence"
-    },
-    {
-      name: "Communication Plan",
-      maxScore: 30,
-      criteria: "Well-defined communication strategy, methods, and frequency for each stakeholder"
-    },
-    {
-      name: "Documentation & Presentation",
-      maxScore: 20,
-      criteria: "Professional documentation, clear writing, proper formatting and organization"
-    },
-    {
-      name: "Team Contribution",
-      maxScore: 30,
-      criteria: "Evidence of team collaboration, balanced contribution, and effective teamwork"
-    }
-  ];
+  // Return the configured default rubric
+  return DEFAULT_RUBRIC;
 }
 
 /**
