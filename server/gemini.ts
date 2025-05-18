@@ -4,6 +4,7 @@ import path from "path";
 import { File } from "@shared/schema";
 import config from './config';
 import { ACTIVE_MODELS, GRADING_PARAMETERS, TEXT_PARAMETERS, VISION_PARAMETERS } from './aiModels.config';
+import { RubricSection, DEFAULT_RUBRIC } from './rubrics.config';
 
 // Check if Gemini API key is available
 if (!config.ai.gemini) {

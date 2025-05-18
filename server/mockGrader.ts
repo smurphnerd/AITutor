@@ -5,6 +5,11 @@
  */
 
 import { File } from "@shared/schema";
+import { 
+  RubricSection, 
+  DEFAULT_RUBRIC,
+  PROJECT_MANAGEMENT_RUBRIC
+} from './rubrics.config';
 
 interface SectionFeedback {
   score: number;
@@ -25,12 +30,6 @@ interface GradingResult {
     [sectionName: string]: SectionFeedback;
   };
   createdAt: string;
-}
-
-interface RubricSection {
-  name: string;
-  maxScore: number;
-  criteria: string;
 }
 
 /**
@@ -76,33 +75,9 @@ export function generateErrorGradingResult(
 
 /**
  * Default rubric sections to use when none can be extracted
+ * Uses configuration from rubrics.config.ts
  */
 export function getDefaultRubricSections(): RubricSection[] {
-  return [
-    {
-      name: "Content & Analysis",
-      maxScore: 30,
-      criteria: "Quality and depth of content, critical analysis, and engagement with subject matter"
-    },
-    {
-      name: "Structure & Organization",
-      maxScore: 20,
-      criteria: "Logical flow, clear structure, and effective organization of ideas"
-    },
-    {
-      name: "Evidence & Support",
-      maxScore: 20,
-      criteria: "Use of relevant evidence, examples, and references to support arguments"
-    },
-    {
-      name: "Language & Style",
-      maxScore: 15,
-      criteria: "Clarity of expression, appropriate academic tone, and technical accuracy"
-    },
-    {
-      name: "Presentation & Format",
-      maxScore: 15,
-      criteria: "Proper formatting, citation style, and overall presentation"
-    }
-  ];
+  // Return the configured default rubric from our configuration file
+  return DEFAULT_RUBRIC;
 }
