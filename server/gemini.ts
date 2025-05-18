@@ -13,9 +13,9 @@ if (!config.ai.gemini) {
 // Initialize the Google Generative AI with API key from config
 const genAI = new GoogleGenerativeAI(config.ai.gemini || "");
 
-// Use Gemini Pro for more detailed and thoughtful responses
+// Use Gemini-1.5-flash for reliable and fast responses
 const geminiPro = genAI.getGenerativeModel({ 
-  model: "gemini-pro",
+  model: "gemini-1.5-flash",
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,
@@ -23,10 +23,9 @@ const geminiPro = genAI.getGenerativeModel({
   }
 });
 
-// Use standard Gemini model for vision capabilities
-// The model name has been updated to use a supported version
+// Use Gemini 1.5 flash model with vision capabilities
 const geminiProVision = genAI.getGenerativeModel({ 
-  model: "gemini-pro-vision", // Using standard vision model instead of flash-vision
+  model: "gemini-1.5-flash-vision", 
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,

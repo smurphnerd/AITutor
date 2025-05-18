@@ -277,15 +277,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             let result;
             try {
-              // Attempt to grade with Gemini
-              result = await gradePapersWithGemini(rubricFiles, submission);
-            } catch (error) {
-              console.error("Error during AI grading:", error);
-              // Fall back to error result if Gemini fails
-              result = generateErrorGradingResult(
-                submission, 
-                "AI service encountered an error processing your document. Please try again later."
-              );
+              // First try to grade with OpenAI (better for detailed feedback)
+              console.log("Attempting to grade with OpenAI...");
+              const { gradePapers } = await import('./openai');
+              result = await gradePapers(rubricFiles, submission);
+              
+            } catch (openaiError) {
+              console.error("Error during OpenAI grading:", openaiError);
+              
+              try {
+                // Fall back to Gemini if OpenAI fails
+                console.log("OpenAI grading failed, falling back to Gemini...");
+                result = await gradePapersWithGemini(rubricFiles, submission);
+              } catch (geminiError) {
+                console.error("Error during Gemini AI grading:", geminiError);
+                // Fall back to error result if both AI services fail
+                result = generateErrorGradingResult(
+                  submission, 
+                  "AI services encountered errors processing your document. Please try again later."
+                );
+              }
             }
             
             // Store result (using our result from either the successful call or the error handler)
