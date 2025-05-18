@@ -1,0 +1,106 @@
+7:21:55 AM [express] GET /api/files/rubric 200 in 727ms :: []
+7:21:55 AM [express] GET /api/files/submission 200 in 18ms :: []
+7:22:04 AM [express] POST /api/upload/rubric 201 in 558ms :: {"id":8,"originalname":"FIT5057_S12025_…
+Direct PDF parsing failed, trying AI extraction: ENOENT: no such file or directory, open './test/data/05-versions-space.pdf'
+Attempting to connect to Gemini API with flash-vision model...
+API Key present: true
+API Key starts with: AIza...
+7:22:04 AM [express] POST /api/upload/rubric 201 in 631ms :: {"id":9,"originalname":"34526358_Assign…
+Direct PDF parsing failed, trying AI extraction: ENOENT: no such file or directory, open './test/data/05-versions-space.pdf'
+Attempting to connect to Gemini API with flash-vision model...
+API Key present: true
+API Key starts with: AIza...
+Error processing PDF with Gemini: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent: [404 Not Found] models/gemini-1.5-flash-vision is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+    at handleResponseNotOk (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:432:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async makeRequest (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:401:9)
+    at async generateContent (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:865:22)
+    at async processPdfWithGemini (/home/runner/workspace/server/gemini.ts:120:20)
+    at async processPdf (/home/runner/workspace/server/fileProcessing.ts:87:24)
+    at async processFile (/home/runner/workspace/server/fileProcessing.ts:20:26) {
+  status: 404,
+  statusText: 'Not Found',
+  errorDetails: undefined
+}
+HTTP Status: 404
+Status Text: Not Found
+Error processing PDF with Gemini: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent: [404 Not Found] models/gemini-1.5-flash-vision is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+    at handleResponseNotOk (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:432:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async makeRequest (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:401:9)
+    at async generateContent (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:865:22)
+    at async processPdfWithGemini (/home/runner/workspace/server/gemini.ts:120:20)
+    at async processPdf (/home/runner/workspace/server/fileProcessing.ts:87:24)
+    at async processFile (/home/runner/workspace/server/fileProcessing.ts:20:26) {
+  status: 404,
+  statusText: 'Not Found',
+  errorDetails: undefined
+}
+HTTP Status: 404
+Status Text: Not Found
+7:22:21 AM [express] DELETE /api/files/9 200 in 164ms :: {"message":"File deleted successfully"}
+7:22:34 AM [express] GET /api/files/rubric 200 in 87ms :: [{"id":8,"originalname":"FIT5057_S12025_As…
+7:22:35 AM [express] GET /api/files/submission 200 in 18ms :: []
+7:22:44 AM [express] POST /api/upload/rubric 201 in 1156ms :: {"id":10,"originalname":"PM S1 2025 As…
+Direct PDF parsing failed, trying AI extraction: ENOENT: no such file or directory, open './test/data/05-versions-space.pdf'
+Attempting to connect to Gemini API with flash-vision model...
+API Key present: true
+API Key starts with: AIza...
+Error processing PDF with Gemini: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent: [404 Not Found] models/gemini-1.5-flash-vision is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+    at handleResponseNotOk (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:432:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async makeRequest (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:401:9)
+    at async generateContent (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:865:22)
+    at async processPdfWithGemini (/home/runner/workspace/server/gemini.ts:120:20)
+    at async processPdf (/home/runner/workspace/server/fileProcessing.ts:87:24)
+    at async processFile (/home/runner/workspace/server/fileProcessing.ts:20:26) {
+  status: 404,
+  statusText: 'Not Found',
+  errorDetails: undefined
+}
+HTTP Status: 404
+Status Text: Not Found
+7:22:49 AM [express] POST /api/upload/submission 201 in 796ms :: {"id":11,"originalname":"34526358_A…
+Direct PDF parsing failed, trying AI extraction: ENOENT: no such file or directory, open './test/data/05-versions-space.pdf'
+Attempting to connect to Gemini API with flash-vision model...
+API Key present: true
+API Key starts with: AIza...
+Error processing PDF with Gemini: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-vision:generateContent: [404 Not Found] models/gemini-1.5-flash-vision is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+    at handleResponseNotOk (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:432:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async makeRequest (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:401:9)
+    at async generateContent (file:///home/runner/workspace/node_modules/@google/generative-ai/dist/index.mjs:865:22)
+    at async processPdfWithGemini (/home/runner/workspace/server/gemini.ts:120:20)
+    at async processPdf (/home/runner/workspace/server/fileProcessing.ts:87:24)
+    at async processFile (/home/runner/workspace/server/fileProcessing.ts:20:26) {
+  status: 404,
+  statusText: 'Not Found',
+  errorDetails: undefined
+}
+HTTP Status: 404
+Status Text: Not Found
+Starting grading process using extracted text with Gemini...
+7:22:51 AM [express] POST /api/grade 202 in 130ms :: {"jobId":"de51d21a-87b2-4164-b34f-0269a0d3dd1f"}
+Extracted text from rubric file: Could not extract text from PDF. The document may be scanned or have security restrictions....
+Sending rubric text to Gemini for analysis
+Extracted text from rubric file: Could not extract text from PDF. The document may be scanned or have security restrictions....
+Sending rubric text to Gemini for analysis
+Raw Gemini response: []
+...
+Cleaned JSON to parse: []...
+Successfully parsed JSON response
+Creating basic sections from text analysis
+Raw Gemini response: []
+...
+Cleaned JSON to parse: []...
+Successfully parsed JSON response
+Creating basic sections from text analysis
+Successfully extracted 8 rubric sections
+Extracted submission text: Could not extract text from PDF. The document may be scanned or have security restrictions....
+Found 1 image descriptions to include in grading
+Maximum possible score based on rubric: 200
+Sending grading request to Gemini with extracted text...
+7:22:52 AM [express] GET /api/grade/status/de51d21a-87b2-4164-b34f-0269a0d3dd1f 200 in 2ms :: {"stat…
+7:22:53 AM [express] GET /api/grade/status/de51d21a-87b2-4164-b34f-0269a0d3dd1f 304 in 0ms :: {"stat…
+7:22:54 AM [express] GET /api/grade/status/de51d21a-87b2-4164-b34f-0269a0d3dd1f 200 in 1ms :: {"stat…
+7:22:55 AM [express] GET /api/grade/results/de51d21a-87b2-4164-b34f-0269a0d3dd1f 200 in 1ms :: [{"su…

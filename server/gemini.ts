@@ -23,9 +23,10 @@ const geminiPro = genAI.getGenerativeModel({
   }
 });
 
-// Use Gemini Flash Vision model for processing PDFs and images
+// Use standard Gemini model for vision capabilities
+// The model name has been updated to use a supported version
 const geminiProVision = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash-vision",
+  model: "gemini-pro-vision", // Using standard vision model instead of flash-vision
   generationConfig: {
     temperature: 0.2,
     topP: 0.8,
@@ -106,14 +107,22 @@ export async function processPdfWithGemini(filePath: string): Promise<{ text: st
     ];
     
     // Add debugging for Gemini API connection
-    console.log("Attempting to connect to Gemini API with flash-vision model...");
-    console.log("API Key present:", !!process.env.GEMINI_API_KEY);
-    if (process.env.GEMINI_API_KEY) {
+    console.log("Attempting to connect to Gemini API with vision model...");
+    console.log("API Key present:", !!config.ai.gemini);
+    if (config.ai.gemini) {
       // Log first few characters only for security
-      const keyStart = process.env.GEMINI_API_KEY.substring(0, 4);
+      const keyStart = config.ai.gemini.substring(0, 4);
       console.log("API Key starts with:", keyStart + "...");
     } else {
       console.log("Warning: GEMINI_API_KEY environment variable is not set");
+    }
+    
+    // We'll try to check which models are available
+    try {
+      const models = await genAI.listModels();
+      console.log("Available Gemini models:", models.models.map(m => m.name));
+    } catch (modelError) {
+      console.log("Could not list available models:", modelError.message);
     }
     
     // Generate content using Gemini Vision

@@ -40,70 +40,61 @@ export async function processFile(file: File) {
  */
 async function processPdf(filePath: string) {
   try {
-    // Load the PDF document to get basic metadata
-    const dataBuffer = await fs.readFile(filePath);
-    const pdfDoc = await PDFDocument.load(dataBuffer);
+    // Use our dedicated utility for PDF text extraction
+    const { extractTextFromPdf } = await import('./pdfUtils');
     
-    // Get the number of pages
-    const numPages = pdfDoc.getPageCount();
+    // Extract text directly from the PDF
+    const result = await extractTextFromPdf(filePath);
     
-    // Try direct PDF text extraction first
-    try {
-      // Import pdf-parse for reliable text extraction
-      const pdfParse = await import('pdf-parse');
+    if (result.success && result.text.length > 50) {
+      console.log(`PDF processed successfully: ${result.numPages} pages, ${result.text.length} characters`);
       
-      // Extract text from PDF
-      const pdfData = await pdfParse.default(dataBuffer);
-      
-      // Get the text content
-      const extractedText = pdfData.text || "";
-      
-      console.log(`PDF processed directly: ${numPages} pages, ${extractedText.length} characters extracted`);
-      
-      // Check if we got meaningful text content
-      if (extractedText.trim().length > 50) {
-        // We have good text content from pdf-parse
-        const imageDescriptions = [];
-        if (numPages > 1) {
-          imageDescriptions.push("This document may contain images or figures that couldn't be processed automatically.");
-        }
-        
-        return { 
-          text: extractedText, 
-          images: [], 
-          imageDescriptions 
-        };
-      } else {
-        console.log("Limited text extracted with pdf-parse, trying AI extraction as fallback");
-        // Not enough text extracted, try AI-based extraction
-        throw new Error("Insufficient text extracted with pdf-parse");
+      // Create image description placeholder
+      const imageDescriptions = [];
+      if (result.numPages > 1) {
+        imageDescriptions.push("This document may contain images or figures that couldn't be extracted automatically.");
       }
-    } catch (directError) {
-      console.log("Direct PDF parsing failed, trying AI extraction:", directError.message);
       
-      // Fallback to AI extraction
+      return {
+        text: result.text,
+        images: [],
+        imageDescriptions
+      };
+    } else {
+      // If direct extraction failed or returned minimal text, try loading basic metadata
       try {
-        // Use Gemini to process the PDF and extract content
-        const result = await processPdfWithGemini(filePath);
-        return result;
-      } catch (aiError) {
-        console.error("Error using Gemini for PDF processing:", aiError);
+        const dataBuffer = await fs.readFile(filePath);
+        const pdfDoc = await PDFDocument.load(dataBuffer);
+        const numPages = pdfDoc.getPageCount();
         
-        // Both methods failed, return basic information
-        const fullText = `PDF document with ${numPages} pages. Content not fully extracted, but processing will attempt to continue.`;
+        console.log(`PDF metadata extracted: ${numPages} pages, but text extraction failed: ${result.error || 'Unknown error'}`);
         
-        // Add a generic image description if it appears to be a multi-page document
-        const imageDescriptions = [];
-        if (numPages > 1) {
-          imageDescriptions.push("This document may contain images or figures that couldn't be processed automatically.");
-        }
+        // Create a fallback response with basic information
+        const fallbackText = `PDF document with ${numPages} pages. Text extraction was limited. The document may be scanned, encrypted, or contain primarily images.`;
         
-        return { text: fullText, images: [], imageDescriptions };
+        // Add a generic image description
+        const imageDescriptions = ["This document appears to contain content that couldn't be fully extracted as text."];
+        
+        return { text: fallbackText, images: [], imageDescriptions };
+      } catch (metadataError) {
+        // Even basic metadata extraction failed
+        console.error("Failed to extract PDF metadata:", metadataError);
+        
+        // Return minimal information
+        return {
+          text: "Could not extract content from this PDF. The file may be damaged or in an unsupported format.",
+          images: [],
+          imageDescriptions: ["Document processing failed."]
+        };
       }
     }
   } catch (error) {
     console.error("Error processing PDF:", error);
-    throw new Error("Failed to process PDF: " + (error instanceof Error ? error.message : String(error)));
+    return {
+      text: "Error processing PDF: " + (error instanceof Error ? error.message : String(error)),
+      images: [],
+      imageDescriptions: []
+    };
   }
 }
 
