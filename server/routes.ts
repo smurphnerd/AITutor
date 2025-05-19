@@ -275,11 +275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               throw new Error("Submission file is undefined");
             }
 
-            // Import our new modular grading service that automatically selects the right AI provider
-            const { gradePapers } = await import('./services/gradingService');
+            // Import our new enhanced multi-stage grading service
+            const { enhancedGradePapers } = await import('./services/enhancedGrader');
             
-            // Process the submission using the configured AI provider
-            const result = await gradePapers(rubricFiles, submission);
+            // Process the submission using the multi-stage approach:
+            // 1. Parse rubric with simpler AI model
+            // 2. Grade submission with more sophisticated AI model using the standardized format
+            const result = await enhancedGradePapers(rubricFiles, submission);
             
             // Store result (using our result from either the successful call or the error handler)
             const currentJob = gradingJobs.get(jobId);
