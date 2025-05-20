@@ -2,10 +2,10 @@
  * Enhanced Grading Service
  * 
  * This service implements a multi-stage grading approach:
- * 1. First, a simpler AI parses the rubric into a standardized format
+ * 1. First, a comprehensive rubric analyzer processes all assignment materials into a standardized format
  * 2. Then, the more sophisticated AI uses this structured format to grade the submission
  * 
- * This separation of concerns improves performance and accuracy of the grading process.
+ * This separation of concerns improves accuracy and provides detailed, actionable feedback.
  */
 
 import { AIProvider, ACTIVE_MODELS, GRADING_PARAMETERS } from '../aiModels.config';
@@ -15,7 +15,7 @@ import config from '../config';
 import { File } from '@shared/schema';
 import fs from 'fs/promises';
 import path from 'path';
-import { parseRubricFiles, ParsedRubric } from './rubricParser';
+import { analyzeAssignmentMaterials, AnalyzedAssignment } from './rubricAnalyzer';
 
 // Initialize AI clients
 const openai = new OpenAI({ apiKey: config.ai.openai || "" });
@@ -80,82 +80,89 @@ export interface GradingResult {
  * Main enhanced grading function that uses a two-stage approach
  */
 export async function enhancedGradePapers(
-  rubricFiles: File[],
+  assignmentFiles: File[],
   submissionFile: File,
 ): Promise<GradingResult> {
   try {
-    console.log(`Using two-stage grading approach with provider: ${ACTIVE_MODELS.GRADING_PROVIDER} and model: ${ACTIVE_MODELS.GRADING_MODEL}`);
+    console.log(`Using comprehensive two-stage grading approach with provider: ${ACTIVE_MODELS.GRADING_PROVIDER}`);
     
-    // STAGE 1: Parse the rubric into a standardized format using the simpler model
-    console.log('Stage 1: Parsing rubric into standardized format...');
-    const parsedRubric = await parseRubricFiles(rubricFiles);
+    // STAGE 1: Analyze all assignment materials into a comprehensive standardized format
+    console.log('Stage 1: Analyzing all assignment materials into comprehensive format...');
+    const analyzedAssignment = await analyzeAssignmentMaterials(assignmentFiles);
     
-    // STAGE 2: Grade the submission using the standardized rubric and more sophisticated model
-    console.log('Stage 2: Grading submission using standardized rubric...');
+    // STAGE 2: Grade the submission using the comprehensive analyzed assignment
+    console.log('Stage 2: Grading submission using comprehensive analysis...');
     
     // Select the correct service based on configuration
     switch (ACTIVE_MODELS.GRADING_PROVIDER) {
       case AIProvider.OPENAI:
         console.log('Using OpenAI for grading');
-        return await gradeWithOpenAI(parsedRubric, submissionFile);
+        return await gradeWithOpenAI(analyzedAssignment, submissionFile);
       case AIProvider.GEMINI:
         console.log('Using Gemini for grading');
-        return await gradeWithGemini(parsedRubric, submissionFile);
+        return await gradeWithGemini(analyzedAssignment, submissionFile);
       case AIProvider.ANTHROPIC:
         throw new Error('Anthropic provider not yet implemented');
       default:
         throw new Error(`Unknown provider: ${ACTIVE_MODELS.GRADING_PROVIDER}`);
     }
   } catch (error) {
-    console.error('Error during enhanced grading:', error);
+    console.error('Error during enhanced grading:', error instanceof Error ? error.message : String(error));
     // Return a fallback error result
     return generateErrorResult(
       submissionFile, 
-      `Error: ${error.message || 'AI service error'}`
+      `Error during grading process: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
 
 /**
- * Grade using OpenAI with the parsed rubric
+ * Grade using OpenAI with the analyzed assignment
  */
 async function gradeWithOpenAI(
-  parsedRubric: ParsedRubric,
+  analyzedAssignment: AnalyzedAssignment,
   submissionFile: File
 ): Promise<GradingResult> {
   try {
     // Extract submission content
     const submissionContent = await extractSubmissionContent(submissionFile);
     
-    // Format standardized rubric sections for the prompt
-    const rubricSectionsJson = JSON.stringify(parsedRubric.sections, null, 2);
+    // Create a concise version of the analyzed assignment for the prompt
+    const conciseAssignment = {
+      title: analyzedAssignment.title,
+      description: analyzedAssignment.description,
+      sections: analyzedAssignment.sections.map(section => ({
+        section_name: section.section_name,
+        max_score: section.max_score,
+        description: section.description,
+        grading_criteria: section.grading_criteria
+      }))
+    };
     
-    // Create the grading prompt with the standardized rubric
+    // Format the analyzed assignment for the prompt (keep it concise to avoid token limitations)
+    const assignmentJson = JSON.stringify(conciseAssignment, null, 2);
+    
+    // Create the grading prompt with the analyzed assignment
     const prompt = `
-      ## STANDARDIZED RUBRIC:
-      ${rubricSectionsJson}
-      
-      ## ASSIGNMENT CONTEXT:
-      ${parsedRubric.context_text}
-      
-      ${parsedRubric.reference_text ? `## REFERENCE MATERIALS:\n${parsedRubric.reference_text}` : ''}
+      ## ASSIGNMENT ANALYSIS:
+      ${assignmentJson}
       
       ## STUDENT SUBMISSION:
       ${submissionContent}
       
       ## GRADING REQUIREMENTS:
-      1. Use ONLY the standardized rubric sections provided above
+      1. Grade this submission according to the analyzed assignment details provided
       2. For each section, determine which grade level the submission meets (fail, pass, credit, distinction, or high_distinction)
       3. Assign a score based on the grade level and max_score for that section
       4. Provide detailed feedback for each section with specific examples from the submission
-      5. Include specific strengths and areas for improvement
-      6. Calculate total score and determine if submission passes (50% threshold)
+      5. Include specific strengths (what was done well) and areas for improvement with direct quotes
+      6. Calculate total score and determine if submission passes (${analyzedAssignment.pass_threshold}% threshold)
       
       ## RESPONSE FORMAT - IMPORTANT!
       Return ONLY a valid JSON object with this structure:
       {
         "totalScore": number,
-        "maxPossibleScore": number,
+        "maxPossibleScore": ${analyzedAssignment.total_marks},
         "overallFeedback": "Overall assessment of the submission including main strengths and areas for improvement",
         "status": "pass" or "fail",
         "sectionFeedback": {
@@ -180,7 +187,7 @@ async function gradeWithOpenAI(
       messages: [
         { 
           role: "system", 
-          content: "You are an expert academic grader with experience in evaluating student submissions. Use the standardized rubric to provide consistent, fair, and detailed feedback."
+          content: "You are an expert academic grader with experience in evaluating student submissions. Use the analyzed assignment details to provide consistent, fair, and detailed feedback."
         },
         { role: "user", content: prompt }
       ],
@@ -203,51 +210,58 @@ async function gradeWithOpenAI(
       createdAt: new Date().toISOString()
     };
   } catch (error) {
-    console.error('OpenAI enhanced grading error:', error);
+    console.error('OpenAI enhanced grading error:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
 
 /**
- * Grade using Gemini with the parsed rubric
+ * Grade using Gemini with the analyzed assignment
  */
 async function gradeWithGemini(
-  parsedRubric: ParsedRubric,
+  analyzedAssignment: AnalyzedAssignment,
   submissionFile: File
 ): Promise<GradingResult> {
   try {
     // Extract submission content
     const submissionContent = await extractSubmissionContent(submissionFile);
     
-    // Format standardized rubric sections for the prompt
-    const rubricSectionsJson = JSON.stringify(parsedRubric.sections, null, 2);
+    // Create a concise version of the analyzed assignment for the prompt
+    const conciseAssignment = {
+      title: analyzedAssignment.title,
+      description: analyzedAssignment.description,
+      sections: analyzedAssignment.sections.map(section => ({
+        section_name: section.section_name,
+        max_score: section.max_score,
+        description: section.description,
+        grading_criteria: section.grading_criteria
+      }))
+    };
     
-    // Create the grading prompt with the standardized rubric
+    // Format the analyzed assignment for the prompt (keep it concise to avoid token limitations)
+    const assignmentJson = JSON.stringify(conciseAssignment, null, 2);
+    
+    // Create the grading prompt with the analyzed assignment
     const prompt = `
-      ## STANDARDIZED RUBRIC:
-      ${rubricSectionsJson}
-      
-      ## ASSIGNMENT CONTEXT:
-      ${parsedRubric.context_text}
-      
-      ${parsedRubric.reference_text ? `## REFERENCE MATERIALS:\n${parsedRubric.reference_text}` : ''}
+      ## ASSIGNMENT ANALYSIS:
+      ${assignmentJson}
       
       ## STUDENT SUBMISSION:
       ${submissionContent}
       
       ## GRADING REQUIREMENTS:
-      1. Use ONLY the standardized rubric sections provided above
+      1. Grade this submission according to the analyzed assignment details provided
       2. For each section, determine which grade level the submission meets (fail, pass, credit, distinction, or high_distinction)
       3. Assign a score based on the grade level and max_score for that section
       4. Provide detailed feedback for each section with specific examples from the submission
-      5. Include specific strengths and areas for improvement
-      6. Calculate total score and determine if submission passes (50% threshold)
+      5. Include specific strengths (what was done well) and areas for improvement with direct quotes
+      6. Calculate total score and determine if submission passes (${analyzedAssignment.pass_threshold}% threshold)
       
       ## RESPONSE FORMAT - IMPORTANT!
       Return ONLY a valid JSON object with this structure:
       {
         "totalScore": number,
-        "maxPossibleScore": number,
+        "maxPossibleScore": ${analyzedAssignment.total_marks},
         "overallFeedback": "Overall assessment of the submission including main strengths and areas for improvement",
         "status": "pass" or "fail",
         "sectionFeedback": {
@@ -290,7 +304,7 @@ async function gradeWithGemini(
       createdAt: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Gemini enhanced grading error:', error);
+    console.error('Gemini enhanced grading error:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
@@ -304,7 +318,7 @@ async function extractSubmissionContent(submissionFile: File): Promise<string> {
     const content = await fs.readFile(filePath, 'utf-8');
     return content;
   } catch (error) {
-    console.error('Error extracting submission content:', error);
+    console.error('Error extracting submission content:', error instanceof Error ? error.message : String(error));
     return 'Error: Could not extract submission content.';
   }
 }

@@ -275,12 +275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               throw new Error("Submission file is undefined");
             }
 
-            // Import our new enhanced multi-stage grading service
+            // Import our comprehensive analyzer and enhanced grader
             const { enhancedGradePapers } = await import('./services/enhancedGrader');
             
-            // Process the submission using the multi-stage approach:
-            // 1. Parse rubric with simpler AI model
-            // 2. Grade submission with more sophisticated AI model using the standardized format
+            // Process using comprehensive two-stage approach:
+            // 1. First stage: Analyze all assignment materials together (instructions, rubrics, reference materials)
+            // 2. Second stage: Grade submission against comprehensive standardized format
+            // This gives students clear understanding of what was expected and how they performed
             const result = await enhancedGradePapers(rubricFiles, submission);
             
             // Store result (using our result from either the successful call or the error handler)
