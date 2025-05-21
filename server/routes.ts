@@ -334,17 +334,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const numericRubricIds = rubricIds.map(id => typeof id === 'string' ? parseInt(id) : id);
       const numericSubmissionIds = submissionIds.map(id => typeof id === 'string' ? parseInt(id) : id);
 
-      // Verify files exist and filter out any undefined values
-      const rubricFilesWithUndefined = await Promise.all(
-        numericRubricIds.map(id => storage.getFileById(id))
+      // Verify files exist and retrieve their extracted text content
+      const rubricFilesWithContent = await Promise.all(
+        numericRubricIds.map(async (id) => {
+          const file = await storage.getFileById(id);
+          if (!file) return undefined;
+          
+          // Get content for this file
+          const content = await storage.getFileContent(id);
+          
+          // Return a complete file object with the extracted text
+          return {
+            ...file,
+            extractedText: content?.extractedText || null
+          };
+        })
       );
-      const submissionFilesWithUndefined = await Promise.all(
-        numericSubmissionIds.map(id => storage.getFileById(id))
+      
+      const submissionFilesWithContent = await Promise.all(
+        numericSubmissionIds.map(async (id) => {
+          const file = await storage.getFileById(id);
+          if (!file) return undefined;
+          
+          // Get content for this file
+          const content = await storage.getFileContent(id);
+          
+          // Return a complete file object with the extracted text
+          return {
+            ...file,
+            extractedText: content?.extractedText || null
+          };
+        })
       );
       
       // Filter out any undefined files
-      const rubricFiles = rubricFilesWithUndefined.filter(file => file !== undefined);
-      const submissionFiles = submissionFilesWithUndefined.filter(file => file !== undefined);
+      const rubricFiles = rubricFilesWithContent.filter(file => file !== undefined);
+      const submissionFiles = submissionFilesWithContent.filter(file => file !== undefined);
 
       // Check if any files were not found by comparing original arrays with filtered ones
       if (rubricFiles.length !== numericRubricIds.length) {

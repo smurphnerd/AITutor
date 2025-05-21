@@ -320,13 +320,34 @@ async function gradeWithGemini(
  */
 async function extractSubmissionContent(submissionFile: File): Promise<string> {
   try {
-    // Use the actual file path from the database record
+    console.log(`Extracting content for submission: ${submissionFile.originalname}`);
+    
+    // First check if we have the extracted text stored in the database
+    if (submissionFile.extractedText) {
+      console.log(`Using pre-extracted content from database for: ${submissionFile.originalname}`);
+      return submissionFile.extractedText;
+    }
+    
+    // If not stored in DB, try to extract from file (this is a fallback)
+    console.log(`No pre-extracted content found, attempting to read file: ${submissionFile.originalname}`);
     const filePath = submissionFile.path;
+    
+    if (!filePath) {
+      throw new Error(`No file path available for ${submissionFile.originalname}`);
+    }
+    
     const fileExtension = path.extname(submissionFile.originalname).toLowerCase();
+    
+    // Check if file exists before trying to read it
+    try {
+      await fs.access(filePath);
+    } catch (accessError) {
+      throw new Error(`File does not exist at path: ${filePath}`);
+    }
     
     // Handle PDFs with our improved extractor
     if (fileExtension === '.pdf') {
-      console.log(`Using enhanced PDF extraction for submission: ${submissionFile.originalname}`);
+      console.log(`Using enhanced PDF extraction for: ${submissionFile.originalname}`);
       const { extractPdfText } = await import('../utils/pdfExtractor');
       const result = await extractPdfText(filePath);
       
@@ -351,9 +372,15 @@ async function extractSubmissionContent(submissionFile: File): Promise<string> {
   } catch (error) {
     console.error('Error extracting submission content:', error instanceof Error ? error.message : String(error));
     
-    // Add more information for debugging
+    // If we hit an error but have some extracted text, use that instead
+    if (submissionFile.extractedText) {
+      console.log(`Falling back to database content after extraction error for: ${submissionFile.originalname}`);
+      return submissionFile.extractedText;
+    }
+    
+    // Last resort - create a placeholder response with error details
     const errorDetails = error instanceof Error ? error.message : String(error);
-    return `Error: Could not extract submission content properly. Details: ${errorDetails}\n\nPlease check that the file is properly formatted and not corrupted.`;
+    return `Error: Could not extract submission content. Details: ${errorDetails}\n\nThis submission could not be properly processed.`;
   }
 }
 
