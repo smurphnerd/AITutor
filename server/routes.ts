@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
 import { processFile } from "./fileProcessing";
-import { gradePapersWithGemini } from "./gemini";
+// Import only the services we need
 import { generateErrorGradingResult } from "./mockGrader";
 import { insertFileSchema } from "@shared/schema";
 import { z } from "zod";
