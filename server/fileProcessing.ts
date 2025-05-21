@@ -6,6 +6,7 @@ import mammoth from "mammoth";
 import { db } from "./db";
 import { files } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { extractPDFContent, isLikelyScannedPDF } from "./utils/pdfHelper";
 // We now focus on text extraction only
 
 /**
@@ -57,23 +58,49 @@ export async function processFile(file: File) {
  */
 async function processPdf(filePath: string): Promise<{ text: string; contentType: string }> {
   try {
-    // Use our enhanced PDF extractor
-    const { extractPdfText, isLikelyScannedPdf } = await import('./utils/pdfExtractor');
+    // Use our PDF helper to extract content safely
+    const pdfResult = await extractPDFContent(filePath);
     
-    // Extract text from PDF using the improved extractor
-    const result = await extractPdfText(filePath);
-    
-    if (result.success && result.text.length > 100) {
-      console.log(`PDF processed successfully: ${result.numPages} pages, ${result.text.length} characters`);
+    // Check if we got an error
+    if ('error' in pdfResult) {
+      console.error("PDF extraction error:", pdfResult.error);
       
-      // Include basic metadata in the content if available
-      let enhancedText = result.text;
-      if (result.metadata.title) {
-        enhancedText = `Document Title: ${result.metadata.title}\n\n${enhancedText}`;
+      // Try to at least get page count from the file
+      try {
+        const dataBuffer = await fs.readFile(filePath);
+        const pdfDoc = await PDFDocument.load(dataBuffer);
+        const numPages = pdfDoc.getPageCount();
+        
+        return { 
+          text: `PDF document with ${numPages} pages. Could not extract text due to error: ${pdfResult.error}`,
+          contentType: "pdf/error" 
+        };
+      } catch (fallbackError) {
+        // Complete failure case
+        return { 
+          text: `Error processing PDF: ${pdfResult.error}`,
+          contentType: "pdf/error" 
+        };
+      }
+    }
+    
+    // If we have successful extraction
+    if (pdfResult.text) {
+      console.log(`PDF processed successfully: ${pdfResult.numpages} pages, ${pdfResult.text.length} characters`);
+      
+      // Create enhanced text with metadata
+      let enhancedText = pdfResult.text;
+      
+      // Add metadata if available
+      if (pdfResult.info && pdfResult.info.Title) {
+        enhancedText = `Document Title: ${pdfResult.info.Title}\n\n${enhancedText}`;
       }
       
-      // Add scan detection info
-      if (isLikelyScannedPdf(result)) {
+      // Add basic metadata
+      enhancedText = `Document Length: ${pdfResult.numpages} pages\n${enhancedText}`;
+      
+      // Check if the document might be a scanned PDF
+      if (isLikelyScannedPDF(pdfResult)) {
         enhancedText = `NOTE: This document appears to be scanned or contain image-based content that may not be fully extracted as text.\n\n${enhancedText}`;
       }
       
@@ -82,29 +109,11 @@ async function processPdf(filePath: string): Promise<{ text: string; contentType
         contentType: "pdf/text"
       };
     } else {
-      // If extraction failed or returned minimal text, try loading basic metadata
-      try {
-        const dataBuffer = await fs.readFile(filePath);
-        const pdfDoc = await PDFDocument.load(dataBuffer);
-        const numPages = pdfDoc.getPageCount();
-        
-        console.log(`PDF metadata extracted: ${numPages} pages, but text extraction failed: ${result.error || 'Unknown error'}`);
-        
-        // Create a more informative fallback response
-        const fallbackText = `PDF document with ${numPages} pages. The document appears to be scanned, encrypted, or contain primarily images. Limited text extraction was possible.\n\n${result.text}`;
-        
-        return { 
-          text: fallbackText,
-          contentType: "pdf/limited" 
-        };
-      } catch (metadataError) {
-        // Even basic metadata extraction failed
-        console.error("Error extracting PDF metadata:", metadataError);
-        return { 
-          text: "PDF processing faced challenges. The document may be encrypted, password-protected, or use an unsupported format.",
-          contentType: "pdf/error"
-        };
-      }
+      // Extraction didn't return an error but also didn't get much text
+      return { 
+        text: `PDF document with ${pdfResult.numpages || 'unknown'} pages. The document appears to be scanned, encrypted, or contain primarily images. Limited text extraction was possible.`,
+        contentType: "pdf/limited" 
+      };
     }
   } catch (error) {
     console.error("Error processing PDF:", error);

@@ -345,24 +345,37 @@ async function extractSubmissionContent(submissionFile: File): Promise<string> {
       throw new Error(`File does not exist at path: ${filePath}`);
     }
     
-    // Handle PDFs with our improved extractor
+    // Handle PDFs with our PDF helper
     if (fileExtension === '.pdf') {
-      console.log(`Using enhanced PDF extraction for: ${submissionFile.originalname}`);
-      const { extractPdfText } = await import('../utils/pdfExtractor');
-      const result = await extractPdfText(filePath);
+      console.log(`Using PDF helper for: ${submissionFile.originalname}`);
       
-      if (result.success) {
+      // We should already have the content in the database, but if not, we'll try to extract it
+      if (submissionFile.extractedText) {
+        return submissionFile.extractedText;
+      }
+      
+      // Import the PDF helper
+      const { extractPDFContent } = await import('../utils/pdfHelper');
+      const pdfResult = await extractPDFContent(filePath);
+      
+      // Check if we got an error
+      if ('error' in pdfResult) {
+        console.error("PDF extraction error:", pdfResult.error);
+        throw new Error(`PDF extraction failed: ${pdfResult.error}`);
+      }
+      
+      if (pdfResult.text) {
         // Add metadata to the beginning for context
-        let content = result.text;
-        if (result.metadata.title) {
-          content = `Document Title: ${result.metadata.title}\n\n${content}`;
+        let content = pdfResult.text;
+        
+        if (pdfResult.info && pdfResult.info.Title) {
+          content = `Document Title: ${pdfResult.info.Title}\n\n${content}`;
         }
-        if (result.numPages) {
-          content = `Document Length: ${result.numPages} pages\n${content}`;
-        }
+        
+        content = `Document Length: ${pdfResult.numpages} pages\n${content}`;
         return content;
       } else {
-        throw new Error(`PDF extraction failed: ${result.error}`);
+        throw new Error(`PDF extraction failed: No text content extracted`);
       }
     }
     
