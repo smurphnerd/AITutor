@@ -21,6 +21,9 @@ import { analyzeAssignmentMaterials, AnalyzedAssignment } from './rubricAnalyzer
 const openai = new OpenAI({ apiKey: config.ai.openai || "" });
 const genAI = new GoogleGenerativeAI(config.ai.gemini || "");
 
+// Import Anthropic Claude integration for additional AI options
+import { gradePapersWithClaude } from '../anthropic';
+
 // Safety settings for Gemini
 const safetySettings = [
   {
