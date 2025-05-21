@@ -31,7 +31,7 @@ ensureTempUploadDir();
 // Configure multer storage
 const storage_config = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, UPLOAD_DIR);
+    cb(null, TEMP_UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueFilename = `${Date.now()}-${uuidv4()}${path.extname(file.originalname)}`;
@@ -101,16 +101,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertFileSchema.parse(fileData);
       const file = await storage.createFile(validatedData);
 
-      // Process the file to extract text and content
-      processFile(file);
-
-      res.status(201).json({
-        id: file.id,
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        fileType: file.fileType,
-      });
+      // Process the file to extract text and content in background
+      try {
+        const processedContent = await processFile(file);
+        
+        // File successfully processed, send back metadata with processing status
+        res.status(201).json({
+          id: file.id,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          fileType: file.fileType,
+          processingStatus: "completed",
+          contentSummary: processedContent.text.substring(0, 100) + "..." // Show a preview
+        });
+        
+        // Clean up temporary file after processing
+        await fs.unlink(file.path).catch(e => console.error("Error deleting temp file:", e));
+        
+      } catch (processingError) {
+        // We still return success since the file was uploaded, but with processing error
+        console.error("Error processing rubric:", processingError);
+        res.status(201).json({
+          id: file.id,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          fileType: file.fileType,
+          processingStatus: "error",
+          processingError: processingError.message
+        });
+      }
     } catch (error) {
       console.error("Error uploading rubric:", error);
       res.status(500).json({ message: "Failed to upload rubric" });
@@ -136,16 +157,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertFileSchema.parse(fileData);
       const file = await storage.createFile(validatedData);
 
-      // Process the file to extract text and content
-      processFile(file);
-
-      res.status(201).json({
-        id: file.id,
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        fileType: file.fileType,
-      });
+      // Process the file to extract text and content in background
+      try {
+        const processedContent = await processFile(file);
+        
+        // File successfully processed, send back metadata with processing status
+        res.status(201).json({
+          id: file.id,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          fileType: file.fileType,
+          processingStatus: "completed",
+          contentSummary: processedContent.text.substring(0, 100) + "..." // Show a preview
+        });
+        
+        // Clean up temporary file after processing
+        await fs.unlink(file.path).catch(e => console.error("Error deleting temp file:", e));
+        
+      } catch (processingError) {
+        // We still return success since the file was uploaded, but with processing error
+        console.error("Error processing submission:", processingError);
+        res.status(201).json({
+          id: file.id,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          fileType: file.fileType,
+          processingStatus: "error",
+          processingError: processingError.message
+        });
+      }
     } catch (error) {
       console.error("Error uploading submission:", error);
       res.status(500).json({ message: "Failed to upload submission" });

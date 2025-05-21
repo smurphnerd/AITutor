@@ -15,6 +15,18 @@ export interface IStorage {
   getFileById(id: number): Promise<File | undefined>;
   getFilesByType(fileType: string): Promise<File[]>;
   deleteFile(id: number): Promise<void>;
+  
+  // Content management
+  updateFileContent(id: number, content: { 
+    extractedText?: string; 
+    contentType?: string; 
+    processingStatus?: string 
+  }): Promise<File>;
+  getFileContent(id: number): Promise<{ 
+    extractedText?: string; 
+    contentType?: string; 
+    processingStatus?: string 
+  } | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -38,9 +50,15 @@ export class DatabaseStorage implements IStorage {
   
   // File management methods
   async createFile(insertFile: InsertFile): Promise<File> {
+    // Set the initial processing status to "pending"
+    const fileWithStatus = {
+      ...insertFile,
+      processingStatus: "pending"
+    };
+    
     const [file] = await db
       .insert(files)
-      .values(insertFile)
+      .values(fileWithStatus)
       .returning();
     return file;
   }
@@ -56,6 +74,48 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFile(id: number): Promise<void> {
     await db.delete(files).where(eq(files.id, id));
+  }
+  
+  // Content management methods
+  async updateFileContent(
+    id: number, 
+    content: { 
+      extractedText?: string; 
+      contentType?: string; 
+      processingStatus?: string 
+    }
+  ): Promise<File> {
+    const [updatedFile] = await db
+      .update(files)
+      .set(content)
+      .where(eq(files.id, id))
+      .returning();
+      
+    return updatedFile;
+  }
+  
+  async getFileContent(id: number): Promise<{ 
+    extractedText?: string; 
+    contentType?: string; 
+    processingStatus?: string 
+  } | undefined> {
+    const [file] = await db
+      .select({
+        extractedText: files.extractedText,
+        contentType: files.contentType,
+        processingStatus: files.processingStatus
+      })
+      .from(files)
+      .where(eq(files.id, id));
+      
+    if (!file) return undefined;
+    
+    // Convert nulls to undefined for TypeScript compatibility
+    return {
+      extractedText: file.extractedText ?? undefined,
+      contentType: file.contentType ?? undefined,
+      processingStatus: file.processingStatus ?? undefined
+    };
   }
 }
 
