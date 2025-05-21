@@ -204,19 +204,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = await storage.getFilesByType(fileType);
       
-      // Return only necessary information
+      // Return file information including processing status
       const fileData = files.map(file => ({
         id: file.id,
         originalname: file.originalname,
         mimetype: file.mimetype,
         size: file.size,
         fileType: file.fileType,
+        processingStatus: file.processingStatus,
+        uploadedAt: file.uploadedAt
       }));
 
       res.json(fileData);
     } catch (error) {
       console.error(`Error getting ${req.params.fileType} files:`, error);
       res.status(500).json({ message: `Failed to get ${req.params.fileType} files` });
+    }
+  });
+
+  // Get extracted content for a specific file
+  app.get("/api/files/:id/content", async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      if (isNaN(fileId)) {
+        return res.status(400).json({ message: "Invalid file ID" });
+      }
+      
+      const file = await storage.getFileById(fileId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      // Return the extracted content directly from the database
+      res.json({
+        id: file.id,
+        originalname: file.originalname,
+        fileType: file.fileType,
+        extractedText: file.extractedText,
+        contentType: file.contentType,
+        processingStatus: file.processingStatus
+      });
+    } catch (error) {
+      console.error(`Error getting file content:`, error);
+      res.status(500).json({ message: "Failed to retrieve file content" });
     }
   });
 
