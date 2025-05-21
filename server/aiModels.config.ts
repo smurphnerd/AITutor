@@ -30,8 +30,9 @@ export const GEMINI_MODELS = {
 
 export const ANTHROPIC_MODELS = {
   CLAUDE_3_OPUS: "claude-3-opus-20240229",
-  CLAUDE_3_SONNET: "claude-3-sonnet-20240229",
+  CLAUDE_3_SONNET: "claude-3-sonnet-20240229", 
   CLAUDE_3_HAIKU: "claude-3-haiku-20240307",
+  CLAUDE_3_7_SONNET: "claude-3-7-sonnet-20250219", // The newest Anthropic model released February 24, 2025
 };
 
 // ACTIVE MODEL CONFIGURATION
@@ -52,8 +53,8 @@ export const ACTIVE_MODELS = {
   VISION_PROVIDER: AIProvider.GEMINI,
 
   // Model used for grading assignments
-  GRADING_MODEL: GEMINI_MODELS.GEMINI_PRO,
-  GRADING_PROVIDER: AIProvider.GEMINI,
+  GRADING_MODEL: ANTHROPIC_MODELS.CLAUDE_3_7_SONNET,
+  GRADING_PROVIDER: AIProvider.ANTHROPIC,
 
   // Image generation model
   IMAGE_GENERATION_MODEL: OPENAI_MODELS.DALL_E_3,

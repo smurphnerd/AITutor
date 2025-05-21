@@ -428,15 +428,16 @@ async function gradeWithClaude(
     });
 
     // The newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+    // Anthropic doesn't support system messages in the same way as OpenAI, so we'll include it as part of the user prompt
+    const systemInstruction = 'You are an expert academic grader with experience in evaluating student submissions. Use the analyzed assignment details to provide consistent, fair, and detailed feedback.';
+    
+    const enhancedPrompt = `${systemInstruction}\n\n${prompt}`;
+    
     const response = await anthropic.messages.create({
       model: 'claude-3-7-sonnet-20250219',
       max_tokens: 4000,
       messages: [
-        { 
-          role: 'system', 
-          content: 'You are an expert academic grader with experience in evaluating student submissions. Use the analyzed assignment details to provide consistent, fair, and detailed feedback.'
-        },
-        { role: 'user', content: prompt }
+        { role: 'user', content: enhancedPrompt }
       ],
     });
 
