@@ -96,13 +96,18 @@ Please analyze the document and extract all rubric sections following this forma
     });
 
     // Extract JSON from response
-    const contentBlock = response.content[0];
-    if (contentBlock.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+    const messageContent = response.content[0];
+    
+    // Safely extract text content based on the type
+    let textContent = '';
+    if ('text' in messageContent) {
+      textContent = messageContent.text;
+    } else {
+      console.warn('Unexpected content format from Claude API');
+      throw new Error('Unexpected response format from Claude');
     }
     
-    const content = contentBlock.text;
-    const jsonMatch = content.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    const jsonMatch = textContent.match(/\[\s*\{[\s\S]*\}\s*\]/);
     
     if (jsonMatch) {
       const sections = JSON.parse(jsonMatch[0]) as RubricSection[];
@@ -190,13 +195,18 @@ IMPORTANT GUIDELINES:
     });
 
     // Extract and parse JSON from response
-    const contentBlock = response.content[0];
-    if (contentBlock.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+    const messageContent = response.content[0];
+    
+    // Safely extract text content based on the type
+    let textContent = '';
+    if ('text' in messageContent) {
+      textContent = messageContent.text;
+    } else {
+      console.warn('Unexpected content format from Claude API');
+      throw new Error('Unexpected response format from Claude');
     }
     
-    const content = contentBlock.text;
-    const jsonMatch = content.match(/\{\s*"totalScore[\s\S]*\}/);
+    const jsonMatch = textContent.match(/\{\s*"totalScore[\s\S]*\}/);
     
     if (jsonMatch) {
       const gradingResult = JSON.parse(jsonMatch[0]) as GradingResult;

@@ -105,7 +105,8 @@ export async function enhancedGradePapers(
         console.log('Using Gemini for grading');
         return await gradeWithGemini(analyzedAssignment, submissionFile);
       case AIProvider.ANTHROPIC:
-        throw new Error('Anthropic provider not yet implemented');
+        console.log('Using Claude for enhanced grading');
+        return await gradeWithClaude(analyzedAssignment, submissionFile);
       default:
         throw new Error(`Unknown provider: ${ACTIVE_MODELS.GRADING_PROVIDER}`);
     }
@@ -352,6 +353,124 @@ async function extractSubmissionContent(submissionFile: File): Promise<string> {
     // Add more information for debugging
     const errorDetails = error instanceof Error ? error.message : String(error);
     return `Error: Could not extract submission content properly. Details: ${errorDetails}\n\nPlease check that the file is properly formatted and not corrupted.`;
+  }
+}
+
+/**
+ * Grade using Claude with the analyzed assignment
+ */
+async function gradeWithClaude(
+  analyzedAssignment: AnalyzedAssignment,
+  submissionFile: File
+): Promise<GradingResult> {
+  try {
+    // Extract submission content with our enhanced PDF handling
+    const submissionContent = await extractSubmissionContent(submissionFile);
+    
+    // Create a concise version of the analyzed assignment for the prompt
+    const conciseAssignment = {
+      title: analyzedAssignment.title,
+      description: analyzedAssignment.description,
+      sections: analyzedAssignment.sections.map(section => ({
+        section_name: section.section_name,
+        max_score: section.max_score,
+        description: section.description,
+        grading_criteria: section.grading_criteria
+      }))
+    };
+    
+    // Format the analyzed assignment for the prompt (keep it concise to avoid token limitations)
+    const assignmentJson = JSON.stringify(conciseAssignment, null, 2);
+    
+    // Create the grading prompt with the analyzed assignment
+    const prompt = `
+      ## ASSIGNMENT ANALYSIS:
+      ${assignmentJson}
+      
+      ## STUDENT SUBMISSION:
+      ${submissionContent}
+      
+      ## GRADING REQUIREMENTS:
+      1. Grade this submission according to the analyzed assignment details provided
+      2. For each section, determine which grade level the submission meets (fail, pass, credit, distinction, or high_distinction)
+      3. Assign a score based on the grade level and max_score for that section
+      4. Provide detailed feedback for each section with specific examples from the submission
+      5. Include specific strengths (what was done well) and areas for improvement with direct quotes
+      6. Calculate total score and determine if submission passes (${analyzedAssignment.pass_threshold}% threshold)
+      
+      ## RESPONSE FORMAT - IMPORTANT!
+      Return ONLY a valid JSON object with this structure:
+      {
+        "totalScore": number,
+        "maxPossibleScore": ${analyzedAssignment.total_marks},
+        "overallFeedback": "Overall assessment of the submission including main strengths and areas for improvement",
+        "status": "pass" or "fail",
+        "sectionFeedback": {
+          "Section Name 1": {
+            "score": number,
+            "max_score": number from rubric,
+            "grade_level": "fail", "pass", "credit", "distinction", or "high_distinction",
+            "feedback": "Detailed feedback for this section with quotes from submission",
+            "strengths": ["strength 1 with example", "strength 2 with example"],
+            "improvements": ["improvement 1 with suggestion", "improvement 2 with suggestion"]
+          },
+          "Section Name 2": {
+            // same structure
+          }
+        }
+      }
+    `;
+
+    // Import Anthropic client
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    // The newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+    const response = await anthropic.messages.create({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 4000,
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are an expert academic grader with experience in evaluating student submissions. Use the analyzed assignment details to provide consistent, fair, and detailed feedback.'
+        },
+        { role: 'user', content: prompt }
+      ],
+    });
+
+    // Extract the text content from the response
+    const messageContent = response.content[0];
+    if ('text' in messageContent) {
+      const textContent = messageContent.text;
+      
+      // Parse JSON from response
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        throw new Error('Failed to extract JSON from Claude response');
+      }
+      
+      const gradingResult = JSON.parse(jsonMatch[0]);
+      
+      // Return formatted grading result
+      return {
+        submissionId: submissionFile.id.toString(),
+        submissionName: submissionFile.originalname,
+        totalScore: gradingResult.totalScore,
+        maxPossibleScore: gradingResult.maxPossibleScore,
+        overallFeedback: gradingResult.overallFeedback,
+        status: gradingResult.status,
+        sectionFeedback: gradingResult.sectionFeedback,
+        createdAt: new Date().toISOString()
+      };
+    } else {
+      throw new Error('Unexpected response format from Claude');
+    }
+  } catch (error) {
+    console.error('Claude enhanced grading error:', error instanceof Error ? error.message : String(error));
+    throw error;
   }
 }
 
