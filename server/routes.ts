@@ -21,13 +21,8 @@ import { UPLOADS_DIR } from "./uploadFix";
 // Configure multer storage
 const storage_config = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Ensure the temp directory exists (this is more robust)
-    fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true })
-      .then(() => cb(null, TEMP_UPLOAD_DIR))
-      .catch(err => {
-        console.error("Error creating temp upload directory:", err);
-        cb(err, "");
-      });
+    // Use the uploads directory that was created in uploadFix
+    cb(null, UPLOADS_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueFilename = `${Date.now()}-${uuidv4()}${path.extname(file.originalname)}`;
