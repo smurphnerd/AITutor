@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import * as fsSync from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { processFile } from "./fileProcessing";
 // Import only the services we need
@@ -13,20 +14,9 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { ZodError } from "zod";
 
-// We'll still use temp storage for initial file upload,
+// We'll use the uploads directory for initial file upload,
 // but content will be stored in the database
-const TEMP_UPLOAD_DIR = path.join(process.cwd(), "temp_uploads");
-
-// Create temp uploads directory if it doesn't exist
-const ensureTempUploadDir = async () => {
-  try {
-    await fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true });
-  } catch (error) {
-    console.error("Error creating temp upload directory:", error);
-  }
-};
-
-ensureTempUploadDir();
+import { UPLOADS_DIR } from "./uploadFix";
 
 // Configure multer storage
 const storage_config = multer.diskStorage({
@@ -306,9 +296,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "File not found" });
       }
 
-      // Delete the physical file
+      // Delete the physical file if it exists
       try {
-        await fs.unlink(file.path);
+        // First check if the path is valid and exists
+        const filePath = file.path.startsWith('/home') 
+          ? path.join(TEMP_UPLOAD_DIR, path.basename(file.path))
+          : file.path;
+          
+        // Check if file exists before trying to delete
+        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        if (fileExists) {
+          await fs.unlink(filePath);
+          console.log(`Successfully deleted file: ${filePath}`);
+        } else {
+          console.log(`File not found, skipping deletion: ${filePath}`);
+        }
       } catch (unlinkError) {
         console.error("Error deleting file from disk:", unlinkError);
         // Continue anyway, we still want to remove from DB
