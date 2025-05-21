@@ -3,17 +3,16 @@ import path from "path";
 import { File } from "@shared/schema";
 import { PDFDocument } from "pdf-lib";
 import mammoth from "mammoth";
-import { processPdfWithGemini } from "./gemini";
+// We now focus on text extraction only
 
 /**
- * Process an uploaded file, extracting text and images
+ * Process an uploaded file, extracting text content
  */
 export async function processFile(file: File) {
   try {
     const fileExtension = path.extname(file.originalname).toLowerCase();
-    let extractedContent: { text: string; images: string[]; imageDescriptions?: string[] } = {
+    let extractedContent: { text: string } = {
       text: "",
-      images: [],
     };
 
     if (fileExtension === ".pdf") {
@@ -36,7 +35,7 @@ export async function processFile(file: File) {
 }
 
 /**
- * Process a PDF file, extracting text and images
+ * Process a PDF file, extracting text content
  */
 async function processPdf(filePath: string) {
   try {
@@ -49,26 +48,19 @@ async function processPdf(filePath: string) {
     if (result.success && result.text.length > 100) {
       console.log(`PDF processed successfully: ${result.numPages} pages, ${result.text.length} characters`);
       
-      // Create image description placeholder
-      const imageDescriptions = [];
-      
-      // Check if the PDF is likely scanned
-      if (isLikelyScannedPdf(result)) {
-        imageDescriptions.push("This document appears to be scanned or contain image-based content that may not be fully extracted as text.");
-      } else if (result.numPages > 1) {
-        imageDescriptions.push("This document may contain figures, tables, or graphics that weren't extracted as text.");
-      }
-      
       // Include basic metadata in the content if available
       let enhancedText = result.text;
       if (result.metadata.title) {
         enhancedText = `Document Title: ${result.metadata.title}\n\n${enhancedText}`;
       }
       
+      // Add scan detection info
+      if (isLikelyScannedPdf(result)) {
+        enhancedText = `NOTE: This document appears to be scanned or contain image-based content that may not be fully extracted as text.\n\n${enhancedText}`;
+      }
+      
       return {
-        text: enhancedText,
-        images: [],
-        imageDescriptions
+        text: enhancedText
       };
     } else {
       // If extraction failed or returned minimal text, try loading basic metadata
@@ -82,67 +74,37 @@ async function processPdf(filePath: string) {
         // Create a more informative fallback response
         const fallbackText = `PDF document with ${numPages} pages. The document appears to be scanned, encrypted, or contain primarily images. Limited text extraction was possible.\n\n${result.text}`;
         
-        // Add a descriptive message
-        const imageDescriptions = ["This document appears to be primarily visual content (images, scanned text) that couldn't be fully extracted as plain text."];
-        
-        return { text: fallbackText, images: [], imageDescriptions };
+        return { text: fallbackText };
       } catch (metadataError) {
         // Even basic metadata extraction failed
         console.error("Error extracting PDF metadata:", metadataError);
         return { 
-          text: "PDF processing faced challenges. The document may be encrypted, password-protected, or use an unsupported format.", 
-          images: [],
-          imageDescriptions: ["PDF processing faced technical limitations."]
+          text: "PDF processing faced challenges. The document may be encrypted, password-protected, or use an unsupported format."
         };
       }
     }
   } catch (error) {
     console.error("Error processing PDF:", error);
     return { 
-      text: "PDF processing encountered an error: " + (error instanceof Error ? error.message : String(error)), 
-      images: [],
-      imageDescriptions: ["PDF processing encountered technical difficulties."]
+      text: "PDF processing encountered an error: " + (error instanceof Error ? error.message : String(error))
     };
   }
 }
 
 /**
- * Process a DOCX file, extracting text and handling images
+ * Process a DOCX file, extracting text content
  */
 async function processDocx(filePath: string) {
   try {
     const dataBuffer = await fs.readFile(filePath);
     
-    // Extract text from DOCX
+    // Extract text from DOCX using mammoth
     const result = await mammoth.extractRawText({ buffer: dataBuffer });
     const text = result.value;
     
-    // Extract images
-    const { images } = await extractDocxImages(dataBuffer);
-    
-    return { text, images };
+    return { text };
   } catch (error) {
     console.error("Error processing DOCX:", error);
-    throw new Error("Failed to process DOCX");
-  }
-}
-
-/**
- * Extract images from a DOCX file
- */
-async function extractDocxImages(buffer: Buffer) {
-  try {
-    const imageData: string[] = [];
-    
-    // Use mammoth to extract images
-    const result = await mammoth.extractRawText({ buffer });
-    
-    // For MVP, we'll just indicate that we found images
-    // In a production environment, we would extract and save the actual images
-    
-    return { images: imageData };
-  } catch (error) {
-    console.error("Error extracting DOCX images:", error);
-    return { images: [] };
+    return { text: "DOCX processing encountered an error: " + (error instanceof Error ? error.message : String(error)) };
   }
 }
