@@ -31,7 +31,13 @@ ensureTempUploadDir();
 // Configure multer storage
 const storage_config = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, TEMP_UPLOAD_DIR);
+    // Ensure the temp directory exists (this is more robust)
+    fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true })
+      .then(() => cb(null, TEMP_UPLOAD_DIR))
+      .catch(err => {
+        console.error("Error creating temp upload directory:", err);
+        cb(err, "");
+      });
   },
   filename: (req, file, cb) => {
     const uniqueFilename = `${Date.now()}-${uuidv4()}${path.extname(file.originalname)}`;
