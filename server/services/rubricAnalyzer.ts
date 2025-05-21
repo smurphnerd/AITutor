@@ -109,12 +109,32 @@ export async function analyzeAssignmentMaterials(files: File[]): Promise<Analyze
     // Extract text content from all provided files
     const fileContents: {filename: string, content: string}[] = await Promise.all(
       files.map(async (file) => {
-        const filePath = path.join('uploads', file.filename);
-        const content = await fs.readFile(filePath, 'utf-8');
-        return {
-          filename: file.originalname,
-          content
-        };
+        // Use the file path directly from database
+        const filePath = file.path;
+        
+        // Check if file has extracted text content already in database
+        if (file.extractedText) {
+          return {
+            filename: file.originalname,
+            content: file.extractedText
+          };
+        }
+        
+        // Otherwise read from file
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          return {
+            filename: file.originalname,
+            content
+          };
+        } catch (error) {
+          console.error(`Error reading file: ${file.originalname}`, error);
+          return {
+            filename: file.originalname,
+            content: `This is a ${file.fileType} document titled "${file.originalname}". Unable to read file content.`
+          };
+        }
+
       })
     );
 

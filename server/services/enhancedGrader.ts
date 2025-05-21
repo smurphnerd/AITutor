@@ -320,7 +320,8 @@ async function gradeWithGemini(
  */
 async function extractSubmissionContent(submissionFile: File): Promise<string> {
   try {
-    const filePath = path.join('uploads', submissionFile.filename);
+    // Use the actual file path from the database record
+    const filePath = submissionFile.path;
     const fileExtension = path.extname(submissionFile.originalname).toLowerCase();
     
     // Handle PDFs with our improved extractor

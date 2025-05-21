@@ -295,7 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // First check if the path is valid and exists
         const filePath = file.path.startsWith('/home') 
-          ? path.join(TEMP_UPLOAD_DIR, path.basename(file.path))
+          ? path.join(UPLOADS_DIR, path.basename(file.path))
           : file.path;
           
         // Check if file exists before trying to delete
