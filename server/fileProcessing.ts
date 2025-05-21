@@ -3,16 +3,20 @@ import path from "path";
 import { File } from "@shared/schema";
 import { PDFDocument } from "pdf-lib";
 import mammoth from "mammoth";
+import { db } from "./db";
+import { files } from "@shared/schema";
+import { eq } from "drizzle-orm";
 // We now focus on text extraction only
 
 /**
- * Process an uploaded file, extracting text content
+ * Process an uploaded file, extracting text content and storing it in the database
  */
 export async function processFile(file: File) {
   try {
     const fileExtension = path.extname(file.originalname).toLowerCase();
-    let extractedContent: { text: string } = {
+    let extractedContent: { text: string; contentType: string } = {
       text: "",
+      contentType: ""
     };
 
     if (fileExtension === ".pdf") {
@@ -23,12 +27,26 @@ export async function processFile(file: File) {
       throw new Error(`Unsupported file type: ${fileExtension}`);
     }
 
-    // Save the extracted content alongside the original file
-    const contentPath = `${file.path}.content.json`;
-    await fs.writeFile(contentPath, JSON.stringify(extractedContent), "utf-8");
+    // Store the extracted content directly in the database
+    await db.update(files)
+      .set({
+        extractedText: extractedContent.text,
+        contentType: extractedContent.contentType,
+        processingStatus: "completed"
+      })
+      .where(eq(files.id, file.id));
 
+    // We don't need to save to a file anymore since content is in the database
     return extractedContent;
   } catch (error) {
+    // Update the database with error status
+    await db.update(files)
+      .set({
+        processingStatus: "error",
+        extractedText: `Error processing file: ${error instanceof Error ? error.message : String(error)}`
+      })
+      .where(eq(files.id, file.id));
+      
     console.error(`Error processing file ${file.originalname}:`, error);
     throw error;
   }
@@ -37,7 +55,7 @@ export async function processFile(file: File) {
 /**
  * Process a PDF file, extracting text content
  */
-async function processPdf(filePath: string) {
+async function processPdf(filePath: string): Promise<{ text: string; contentType: string }> {
   try {
     // Use our enhanced PDF extractor
     const { extractPdfText, isLikelyScannedPdf } = await import('./utils/pdfExtractor');
@@ -60,7 +78,8 @@ async function processPdf(filePath: string) {
       }
       
       return {
-        text: enhancedText
+        text: enhancedText,
+        contentType: "pdf/text"
       };
     } else {
       // If extraction failed or returned minimal text, try loading basic metadata
@@ -74,19 +93,24 @@ async function processPdf(filePath: string) {
         // Create a more informative fallback response
         const fallbackText = `PDF document with ${numPages} pages. The document appears to be scanned, encrypted, or contain primarily images. Limited text extraction was possible.\n\n${result.text}`;
         
-        return { text: fallbackText };
+        return { 
+          text: fallbackText,
+          contentType: "pdf/limited" 
+        };
       } catch (metadataError) {
         // Even basic metadata extraction failed
         console.error("Error extracting PDF metadata:", metadataError);
         return { 
-          text: "PDF processing faced challenges. The document may be encrypted, password-protected, or use an unsupported format."
+          text: "PDF processing faced challenges. The document may be encrypted, password-protected, or use an unsupported format.",
+          contentType: "pdf/error"
         };
       }
     }
   } catch (error) {
     console.error("Error processing PDF:", error);
     return { 
-      text: "PDF processing encountered an error: " + (error instanceof Error ? error.message : String(error))
+      text: "PDF processing encountered an error: " + (error instanceof Error ? error.message : String(error)),
+      contentType: "pdf/error"
     };
   }
 }
@@ -94,7 +118,7 @@ async function processPdf(filePath: string) {
 /**
  * Process a DOCX file, extracting text content
  */
-async function processDocx(filePath: string) {
+async function processDocx(filePath: string): Promise<{ text: string; contentType: string }> {
   try {
     const dataBuffer = await fs.readFile(filePath);
     
@@ -102,9 +126,15 @@ async function processDocx(filePath: string) {
     const result = await mammoth.extractRawText({ buffer: dataBuffer });
     const text = result.value;
     
-    return { text };
+    return { 
+      text,
+      contentType: "docx/text" 
+    };
   } catch (error) {
     console.error("Error processing DOCX:", error);
-    return { text: "DOCX processing encountered an error: " + (error instanceof Error ? error.message : String(error)) };
+    return { 
+      text: "DOCX processing encountered an error: " + (error instanceof Error ? error.message : String(error)),
+      contentType: "docx/error"
+    };
   }
 }

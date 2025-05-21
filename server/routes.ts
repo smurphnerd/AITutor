@@ -13,19 +13,20 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { ZodError } from "zod";
 
-// Setup upload directory
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
+// We'll still use temp storage for initial file upload,
+// but content will be stored in the database
+const TEMP_UPLOAD_DIR = path.join(process.cwd(), "temp_uploads");
 
-// Create uploads directory if it doesn't exist
-const ensureUploadDir = async () => {
+// Create temp uploads directory if it doesn't exist
+const ensureTempUploadDir = async () => {
   try {
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    await fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true });
   } catch (error) {
-    console.error("Error creating upload directory:", error);
+    console.error("Error creating temp upload directory:", error);
   }
 };
 
-ensureUploadDir();
+ensureTempUploadDir();
 
 // Configure multer storage
 const storage_config = multer.diskStorage({

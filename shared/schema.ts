@@ -27,11 +27,21 @@ export const files = pgTable("files", {
   size: integer("size").notNull(),
   fileType: text("file_type").notNull(), // "rubric" or "submission"
   uploadedAt: timestamp("uploaded_at").defaultNow(),
+  
+  // New fields to store extracted content directly in the database
+  extractedText: text("extracted_text"), // Store the extracted text content
+  contentType: text("content_type"), // Indicate the type of content (PDF text, DOCX text, etc.)
+  processingStatus: text("processing_status"), // Track processing status
+  userId: integer("user_id"), // Added for proper user association
 });
 
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
   uploadedAt: true,
+  // New fields can be set after initial upload
+  extractedText: true,
+  contentType: true,
+  processingStatus: true
 });
 
 export type InsertFile = z.infer<typeof insertFileSchema>;
