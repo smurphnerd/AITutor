@@ -196,8 +196,10 @@ async function gradeWithOpenAI(
       response_format: { type: "json_object" }
     });
     
-    // Parse the result
-    const gradingResult = JSON.parse(response.choices[0].message.content);
+    // Parse the result, ensuring we have valid content to parse
+    const messageContent = response.choices[0].message.content;
+    const responseContent = typeof messageContent === 'string' ? messageContent : '{}';
+    const gradingResult = JSON.parse(responseContent);
     
     return {
       submissionId: submissionFile.id.toString(),
@@ -310,16 +312,43 @@ async function gradeWithGemini(
 }
 
 /**
- * Extract the content from a submission file
+ * Extract the content from a submission file with enhanced PDF handling
  */
 async function extractSubmissionContent(submissionFile: File): Promise<string> {
   try {
     const filePath = path.join('uploads', submissionFile.filename);
+    const fileExtension = path.extname(submissionFile.originalname).toLowerCase();
+    
+    // Handle PDFs with our improved extractor
+    if (fileExtension === '.pdf') {
+      console.log(`Using enhanced PDF extraction for submission: ${submissionFile.originalname}`);
+      const { extractPdfText } = await import('../utils/pdfExtractor');
+      const result = await extractPdfText(filePath);
+      
+      if (result.success) {
+        // Add metadata to the beginning for context
+        let content = result.text;
+        if (result.metadata.title) {
+          content = `Document Title: ${result.metadata.title}\n\n${content}`;
+        }
+        if (result.numPages) {
+          content = `Document Length: ${result.numPages} pages\n${content}`;
+        }
+        return content;
+      } else {
+        throw new Error(`PDF extraction failed: ${result.error}`);
+      }
+    }
+    
+    // For other file types, read directly
     const content = await fs.readFile(filePath, 'utf-8');
     return content;
   } catch (error) {
     console.error('Error extracting submission content:', error instanceof Error ? error.message : String(error));
-    return 'Error: Could not extract submission content.';
+    
+    // Add more information for debugging
+    const errorDetails = error instanceof Error ? error.message : String(error);
+    return `Error: Could not extract submission content properly. Details: ${errorDetails}\n\nPlease check that the file is properly formatted and not corrupted.`;
   }
 }
 

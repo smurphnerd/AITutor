@@ -64,7 +64,8 @@ export async function extractPdfText(filePath: string): Promise<ExtractedPdfCont
         metadata,
         success: true
       };
-    } catch (pdfParseError) {
+    } catch (error) {
+      const pdfParseError = error as Error;
       console.error("Error with pdf-parse:", pdfParseError);
       
       // Fall back to a secondary method if available
@@ -80,7 +81,7 @@ export async function extractPdfText(filePath: string): Promise<ExtractedPdfCont
           success: fallbackResult.success
         };
       } catch (fallbackError) {
-        throw new Error(`PDF extraction failed with both methods: ${pdfParseError.message}`);
+        throw new Error(`PDF extraction failed with both methods: ${pdfParseError.message || 'Unknown error'}`);
       }
     }
   } catch (error) {
@@ -144,14 +145,23 @@ export function isLikelyScannedPdf(content: ExtractedPdfContent): boolean {
   }
   
   // Check for signs of OCR or image-based PDFs
-  const hasOcrMarkers = 
-    content.text.includes('OCR') || 
-    content.text.includes('scanned') ||
-    (content.metadata.producer && (
-      content.metadata.producer.includes('scan') ||
-      content.metadata.producer.includes('OCR') ||
-      content.metadata.producer.includes('image')
-    ));
+  let hasOcrMarkers = false;
+  
+  if (content.text.includes('OCR') || content.text.includes('scanned')) {
+    hasOcrMarkers = true;
+  }
+  
+  // Check producer metadata if available
+  if (content.metadata.producer && typeof content.metadata.producer === 'string') {
+    const producer = content.metadata.producer;
+    if (
+      producer.includes('scan') ||
+      producer.includes('OCR') ||
+      producer.includes('image')
+    ) {
+      hasOcrMarkers = true;
+    }
+  }
   
   return hasOcrMarkers;
 }
