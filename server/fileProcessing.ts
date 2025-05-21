@@ -40,28 +40,38 @@ export async function processFile(file: File) {
  */
 async function processPdf(filePath: string) {
   try {
-    // Use our direct PDF parser that avoids the problematic import
-    const { parsePdf } = await import('./pdf-parser');
+    // Use our enhanced PDF extractor
+    const { extractPdfText, isLikelyScannedPdf } = await import('./utils/pdfExtractor');
     
-    // Extract text directly from the PDF
-    const result = await parsePdf(filePath);
+    // Extract text from PDF using the improved extractor
+    const result = await extractPdfText(filePath);
     
-    if (result.success && result.text.length > 50) {
+    if (result.success && result.text.length > 100) {
       console.log(`PDF processed successfully: ${result.numPages} pages, ${result.text.length} characters`);
       
       // Create image description placeholder
       const imageDescriptions = [];
-      if (result.numPages > 1) {
-        imageDescriptions.push("This document may contain images or figures that couldn't be extracted automatically.");
+      
+      // Check if the PDF is likely scanned
+      if (isLikelyScannedPdf(result)) {
+        imageDescriptions.push("This document appears to be scanned or contain image-based content that may not be fully extracted as text.");
+      } else if (result.numPages > 1) {
+        imageDescriptions.push("This document may contain figures, tables, or graphics that weren't extracted as text.");
+      }
+      
+      // Include basic metadata in the content if available
+      let enhancedText = result.text;
+      if (result.metadata.title) {
+        enhancedText = `Document Title: ${result.metadata.title}\n\n${enhancedText}`;
       }
       
       return {
-        text: result.text,
+        text: enhancedText,
         images: [],
         imageDescriptions
       };
     } else {
-      // If direct extraction failed or returned minimal text, try loading basic metadata
+      // If extraction failed or returned minimal text, try loading basic metadata
       try {
         const dataBuffer = await fs.readFile(filePath);
         const pdfDoc = await PDFDocument.load(dataBuffer);
@@ -69,31 +79,29 @@ async function processPdf(filePath: string) {
         
         console.log(`PDF metadata extracted: ${numPages} pages, but text extraction failed: ${result.error || 'Unknown error'}`);
         
-        // Create a fallback response with basic information
-        const fallbackText = `PDF document with ${numPages} pages. Text extraction was limited. The document may be scanned, encrypted, or contain primarily images.`;
+        // Create a more informative fallback response
+        const fallbackText = `PDF document with ${numPages} pages. The document appears to be scanned, encrypted, or contain primarily images. Limited text extraction was possible.\n\n${result.text}`;
         
-        // Add a generic image description
-        const imageDescriptions = ["This document appears to contain content that couldn't be fully extracted as text."];
+        // Add a descriptive message
+        const imageDescriptions = ["This document appears to be primarily visual content (images, scanned text) that couldn't be fully extracted as plain text."];
         
         return { text: fallbackText, images: [], imageDescriptions };
       } catch (metadataError) {
         // Even basic metadata extraction failed
-        console.error("Failed to extract PDF metadata:", metadataError);
-        
-        // Return minimal information
-        return {
-          text: "Could not extract content from this PDF. The file may be damaged or in an unsupported format.",
+        console.error("Error extracting PDF metadata:", metadataError);
+        return { 
+          text: "PDF processing faced challenges. The document may be encrypted, password-protected, or use an unsupported format.", 
           images: [],
-          imageDescriptions: ["Document processing failed."]
+          imageDescriptions: ["PDF processing faced technical limitations."]
         };
       }
     }
   } catch (error) {
     console.error("Error processing PDF:", error);
-    return {
-      text: "Error processing PDF: " + (error instanceof Error ? error.message : String(error)),
+    return { 
+      text: "PDF processing encountered an error: " + (error instanceof Error ? error.message : String(error)), 
       images: [],
-      imageDescriptions: []
+      imageDescriptions: ["PDF processing encountered technical difficulties."]
     };
   }
 }
