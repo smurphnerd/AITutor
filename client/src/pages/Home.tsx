@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { FileUpload } from '@/components/FileUpload';
 import { uploadFile, deleteFile, getUploadedFiles, submitGradingJob, getGradingStatus, getGradingResults } from '@/lib/fileProcessing';
@@ -26,6 +28,8 @@ export default function Home() {
   const [gradingResults, setGradingResults] = useState<GradingResult[]>([]);
   const [activeResultTab, setActiveResultTab] = useState('');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [rubricComment, setRubricComment] = useState('');
+  const [submissionComment, setSubmissionComment] = useState('');
   
   useEffect(() => {
     // Load any existing uploaded files
@@ -325,7 +329,7 @@ export default function Home() {
             {/* Step 1: Upload Rubric */}
             {currentStep === 1 && (
               <div className="flex flex-col md:flex-row gap-6">
-                <div className="md:w-1/2">
+                <div className="md:w-1/2 space-y-4">
                   <FileUpload
                     title="Upload Rubric/Reference Material"
                     description="Upload your grading rubric and any reference materials needed for assessment."
@@ -334,6 +338,20 @@ export default function Home() {
                     onFileSelect={handleRubricUpload}
                     multiple={true}
                   />
+                  
+                  {/* Additional Context for Rubric */}
+                  <div className="space-y-2">
+                    <Label htmlFor="rubric-comment" className="text-sm font-medium">
+                      Additional Context for Grader (Optional)
+                    </Label>
+                    <Textarea
+                      id="rubric-comment"
+                      placeholder="Add any additional context about the assignment, special instructions, or emphasis areas that the AI should consider when grading..."
+                      value={rubricComment}
+                      onChange={(e) => setRubricComment(e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
                 </div>
                 <div className="md:w-1/2">
                   <div className="bg-accent rounded-lg p-6 h-full">
@@ -371,7 +389,7 @@ export default function Home() {
             {/* Step 2: Upload Submissions */}
             {currentStep === 2 && (
               <div className="flex flex-col md:flex-row gap-6">
-                <div className="md:w-1/2">
+                <div className="md:w-1/2 space-y-4">
                   <FileUpload
                     title="Upload Student Submissions"
                     description="Upload one or multiple student submissions to be graded against your rubric."
@@ -380,6 +398,20 @@ export default function Home() {
                     onFileSelect={handleSubmissionUpload}
                     multiple={true}
                   />
+                  
+                  {/* Additional Context for Submissions */}
+                  <div className="space-y-2">
+                    <Label htmlFor="submission-comment" className="text-sm font-medium">
+                      Additional Context for Submissions (Optional)
+                    </Label>
+                    <Textarea
+                      id="submission-comment"
+                      placeholder="Add any specific context about these submissions, known issues, or special considerations the AI should be aware of when grading..."
+                      value={submissionComment}
+                      onChange={(e) => setSubmissionComment(e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
                 </div>
                 <div className="md:w-1/2">
                   <div className="bg-accent rounded-lg p-6 h-full">
