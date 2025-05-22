@@ -1,6 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, LogOut, Crown } from "lucide-react";
@@ -53,12 +52,9 @@ export function Header() {
               
               {/* User avatar and info */}
               <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.profileImageUrl || undefined} />
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-4 w-4" />
+                </div>
                 <span className="text-sm font-medium hidden sm:inline-block">
                   {user?.firstName || user?.email || "User"}
                 </span>
