@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
@@ -60,6 +61,48 @@ const gradingRequestSchema = z.object({
 const gradingJobs = new Map();
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const usageInfo = await storage.checkUsageLimit(userId);
+      
+      res.json({
+        ...user,
+        usage: usageInfo
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.get('/api/auth/usage', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const usageInfo = await storage.checkUsageLimit(userId);
+      res.json(usageInfo);
+    } catch (error) {
+      console.error("Error fetching usage:", error);
+      res.status(500).json({ message: "Failed to fetch usage" });
+    }
+  });
+
+  app.get('/api/auth/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const history = await storage.getUserGradingHistory(userId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching history:", error);
+      res.status(500).json({ message: "Failed to fetch grading history" });
+    }
+  });
+
   // Error handling middleware
   app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {

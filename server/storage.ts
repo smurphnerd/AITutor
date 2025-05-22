@@ -138,8 +138,17 @@ export class DatabaseStorage implements IStorage {
     return file || undefined;
   }
 
-  async getFilesByType(fileType: string): Promise<File[]> {
+  async getFilesByType(fileType: string, userId?: string): Promise<File[]> {
+    if (userId) {
+      return await db.select().from(files).where(
+        and(eq(files.fileType, fileType), eq(files.userId, userId))
+      );
+    }
     return await db.select().from(files).where(eq(files.fileType, fileType));
+  }
+
+  async getUserFiles(userId: string): Promise<File[]> {
+    return await db.select().from(files).where(eq(files.userId, userId)).orderBy(desc(files.uploadedAt));
   }
 
   async deleteFile(id: number): Promise<void> {
@@ -186,6 +195,36 @@ export class DatabaseStorage implements IStorage {
       contentType: file.contentType ?? undefined,
       processingStatus: file.processingStatus ?? undefined
     };
+  }
+
+  // Grading management methods
+  async createGradingJob(job: InsertGradingJob): Promise<GradingJob> {
+    const [gradingJob] = await db
+      .insert(gradingJobs)
+      .values(job)
+      .returning();
+    return gradingJob;
+  }
+
+  async getGradingJob(id: number): Promise<GradingJob | undefined> {
+    const [job] = await db.select().from(gradingJobs).where(eq(gradingJobs.id, id));
+    return job || undefined;
+  }
+
+  async updateGradingJob(id: number, updates: Partial<GradingJob>): Promise<void> {
+    await db
+      .update(gradingJobs)
+      .set(updates)
+      .where(eq(gradingJobs.id, id));
+  }
+
+  async getUserGradingHistory(userId: string): Promise<GradingResult[]> {
+    return await db
+      .select()
+      .from(gradingResults)
+      .innerJoin(gradingJobs, eq(gradingResults.jobId, gradingJobs.id))
+      .where(eq(gradingJobs.userId, userId))
+      .orderBy(desc(gradingResults.createdAt));
   }
 }
 
