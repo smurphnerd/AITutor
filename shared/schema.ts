@@ -1,20 +1,50 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  jsonb,
+  index,
+  serial,
+  integer,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User schema still included from original
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for Replit Auth
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  
+  // Subscription fields
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  subscriptionStatus: varchar("subscription_status").default("free"), // free, active, canceled
+  
+  // Usage tracking
+  monthlyAssessments: integer("monthly_assessments").default(0),
+  lastResetDate: timestamp("last_reset_date").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
 // Files table to store uploaded rubrics and submissions
@@ -28,11 +58,13 @@ export const files = pgTable("files", {
   fileType: text("file_type").notNull(), // "rubric" or "submission"
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   
-  // New fields to store extracted content directly in the database
-  extractedText: text("extracted_text"), // Store the extracted text content
-  contentType: text("content_type"), // Indicate the type of content (PDF text, DOCX text, etc.)
-  processingStatus: text("processing_status"), // Track processing status
-  userId: integer("user_id"), // Added for proper user association
+  // Store extracted content directly in the database
+  extractedText: text("extracted_text"),
+  contentType: text("content_type"),
+  processingStatus: text("processing_status"),
+  
+  // User association
+  userId: varchar("user_id").references(() => users.id),
 });
 
 export const insertFileSchema = createInsertSchema(files).omit({
@@ -53,6 +85,7 @@ export const gradingJobs = pgTable("grading_jobs", {
   status: text("status").notNull().default("pending"), // "pending", "processing", "completed", "error"
   progress: integer("progress").notNull().default(0),
   error: text("error"),
+  userId: varchar("user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });

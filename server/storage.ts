@@ -1,19 +1,33 @@
-import { users, files, type User, type InsertUser, type File, type InsertFile } from "@shared/schema";
+import { 
+  users, 
+  files, 
+  gradingJobs,
+  gradingResults,
+  type User, 
+  type UpsertUser, 
+  type File, 
+  type InsertFile,
+  type GradingJob,
+  type InsertGradingJob,
+  type GradingResult
+} from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
-
-// modify the interface with any CRUD methods
-// you might need
+import { eq, and, gte, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // User operations (IMPORTANT: mandatory for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
+  // Usage tracking for 3 free assessments per month
+  checkUsageLimit(userId: string): Promise<{ canUse: boolean; assessmentsUsed: number; assessmentsLimit: number }>;
+  incrementUsage(userId: string): Promise<void>;
   
   // File management
   createFile(file: InsertFile): Promise<File>;
   getFileById(id: number): Promise<File | undefined>;
-  getFilesByType(fileType: string): Promise<File[]>;
+  getFilesByType(fileType: string, userId?: string): Promise<File[]>;
+  getUserFiles(userId: string): Promise<File[]>;
   deleteFile(id: number): Promise<void>;
   
   // Content management
@@ -27,25 +41,81 @@ export interface IStorage {
     contentType?: string; 
     processingStatus?: string 
   } | undefined>;
+  
+  // Grading management
+  createGradingJob(job: InsertGradingJob): Promise<GradingJob>;
+  getGradingJob(id: number): Promise<GradingJob | undefined>;
+  updateGradingJob(id: number, updates: Partial<GradingJob>): Promise<void>;
+  getUserGradingHistory(userId: string): Promise<GradingResult[]>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  // User operations (IMPORTANT: mandatory for Replit Auth)
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
+  }
+
+  // Usage tracking for 3 free assessments per month
+  async checkUsageLimit(userId: string): Promise<{ canUse: boolean; assessmentsUsed: number; assessmentsLimit: number }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if it's a new month and reset counter
+    const now = new Date();
+    const lastReset = user.lastResetDate ? new Date(user.lastResetDate) : new Date(0);
+    const currentMonth = now.getMonth();
+    const lastResetMonth = lastReset.getMonth();
+    const currentYear = now.getFullYear();
+    const lastResetYear = lastReset.getFullYear();
+
+    let assessmentsUsed = user.monthlyAssessments || 0;
+
+    // Reset if it's a new month
+    if (currentYear > lastResetYear || (currentYear === lastResetYear && currentMonth > lastResetMonth)) {
+      await db
+        .update(users)
+        .set({
+          monthlyAssessments: 0,
+          lastResetDate: now,
+        })
+        .where(eq(users.id, userId));
+      assessmentsUsed = 0;
+    }
+
+    const assessmentsLimit = user.subscriptionStatus === "active" ? 999 : 3; // Unlimited for paid users
+    const canUse = assessmentsUsed < assessmentsLimit;
+
+    return { canUse, assessmentsUsed, assessmentsLimit };
+  }
+
+  async incrementUsage(userId: string): Promise<void> {
+    const user = await this.getUser(userId);
+    if (user) {
+      await db
+        .update(users)
+        .set({
+          monthlyAssessments: (user.monthlyAssessments || 0) + 1,
+        })
+        .where(eq(users.id, userId));
+    }
   }
   
   // File management methods
