@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import Stripe from "stripe";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
@@ -57,6 +58,14 @@ const gradingRequestSchema = z.object({
   submissionIds: z.array(z.string().or(z.number().transform(n => n.toString()))),
 });
 
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
+
 // Keep track of grading jobs in memory for this MVP
 const gradingJobs = new Map();
 
@@ -100,6 +109,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching history:", error);
       res.status(500).json({ message: "Failed to fetch grading history" });
+    }
+  });
+
+  // Stripe subscription routes
+  app.post('/api/create-subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user already has an active subscription
+      if (user.stripeSubscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        if (subscription.status === 'active') {
+          return res.json({
+            subscriptionId: subscription.id,
+            clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+            status: 'active'
+          });
+        }
+      }
+
+      // Create Stripe customer if doesn't exist
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
+        });
+        customerId = customer.id;
+        
+        // Update user with customer ID
+        await storage.upsertUser({
+          ...user,
+          stripeCustomerId: customerId,
+        });
+      }
+
+      // Create subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'AI Grader Pro',
+              description: 'Unlimited AI-powered assignment grading',
+            },
+            unit_amount: 2999, // $29.99 per month
+            recurring: {
+              interval: 'month',
+            },
+          },
+        }],
+        payment_behavior: 'default_incomplete',
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      // Update user with subscription ID
+      await storage.upsertUser({
+        ...user,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscription.id,
+        subscriptionStatus: subscription.status === 'active' ? 'active' : 'free',
+      });
+
+      res.json({
+        subscriptionId: subscription.id,
+        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+      });
+    } catch (error: any) {
+      console.error("Subscription creation error:", error);
+      res.status(400).json({ error: { message: error.message } });
+    }
+  });
+
+  app.post('/api/cancel-subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.stripeSubscriptionId) {
+        return res.status(404).json({ message: "No active subscription found" });
+      }
+
+      await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+      
+      // Update user subscription status
+      await storage.upsertUser({
+        ...user,
+        subscriptionStatus: 'canceled',
+      });
+
+      res.json({ message: "Subscription canceled successfully" });
+    } catch (error: any) {
+      console.error("Subscription cancellation error:", error);
+      res.status(400).json({ error: { message: error.message } });
     }
   });
 

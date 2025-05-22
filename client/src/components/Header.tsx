@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, LogOut, Crown } from "lucide-react";
+import { Link } from "wouter";
 
 export function Header() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -48,6 +49,16 @@ export function Header() {
                     )}
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Upgrade button for free users */}
+              {user?.subscriptionStatus !== "active" && (
+                <Link href="/subscribe">
+                  <Button variant="outline" size="sm" className="flex items-center space-x-1">
+                    <Crown className="h-4 w-4" />
+                    <span>Upgrade</span>
+                  </Button>
+                </Link>
               )}
               
               {/* User avatar and info */}
