@@ -21,7 +21,7 @@ async function setupDatabase() {
       CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions (expire);
     `);
 
-    // Create users table with authentication fields
+    // Create users table with authentication fields (matching schema.ts)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id varchar PRIMARY KEY,
@@ -37,6 +37,19 @@ async function setupDatabase() {
         created_at timestamp DEFAULT NOW(),
         updated_at timestamp DEFAULT NOW()
       );
+    `);
+
+    // Add missing columns if they don't exist
+    await pool.query(`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS first_name varchar,
+      ADD COLUMN IF NOT EXISTS last_name varchar,
+      ADD COLUMN IF NOT EXISTS profile_image_url varchar,
+      ADD COLUMN IF NOT EXISTS stripe_customer_id varchar,
+      ADD COLUMN IF NOT EXISTS stripe_subscription_id varchar,
+      ADD COLUMN IF NOT EXISTS subscription_status varchar DEFAULT 'free',
+      ADD COLUMN IF NOT EXISTS monthly_assessments integer DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS last_reset_date timestamp DEFAULT NOW();
     `);
 
     console.log('✅ Authentication tables created successfully!');
