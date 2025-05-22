@@ -73,6 +73,7 @@ export default function Home() {
             if (results.length > 0) {
               setActiveResultTab(results[0].submissionId);
               setCurrentStep(3);
+              setMaxStep(4); // Enable a potential next step for new grading
             }
           } else if (status.status === 'error') {
             setIsProcessing(false);
@@ -222,6 +223,13 @@ export default function Home() {
       } else {
         setCurrentStep(prev => prev + 1);
       }
+    } else if (currentStep === 3 && gradingResults.length > 0) {
+      // Allow starting a new grading session
+      setCurrentStep(1);
+      setGradingResults([]);
+      setCurrentJobId(null);
+      setRubricComment('');
+      setSubmissionComment('');
     }
   };
   
@@ -574,7 +582,7 @@ export default function Home() {
                                   <AccordionTrigger className="px-6 py-4 border-b border-border hover:no-underline w-full flex justify-between items-center">
                                     <h3 className="text-md font-medium text-foreground">{sectionName}</h3>
                                     <div className="flex items-center">
-                                      <span className="mr-3 font-medium text-primary">{feedback.score}/{feedback.maxScore}</span>
+                                      <span className="mr-3 font-medium text-primary">{feedback.score || 0}/{feedback.maxScore || 0}</span>
                                     </div>
                                   </AccordionTrigger>
                                   <AccordionContent className="px-6 py-4 bg-accent mt-0">
@@ -626,9 +634,9 @@ export default function Home() {
               </Button>
               <Button 
                 onClick={nextStep}
-                disabled={(currentStep >= maxStep) || isProcessing}
+                disabled={isProcessing || (currentStep >= maxStep && gradingResults.length === 0)}
               >
-                {currentStep === 2 ? 'Start Grading' : 'Continue'}
+                {currentStep === 2 ? 'Start Grading' : currentStep === 3 && gradingResults.length > 0 ? 'Start New Grading' : 'Continue'}
               </Button>
             </div>
           </CardContent>
