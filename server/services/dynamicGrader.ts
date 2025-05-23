@@ -39,7 +39,7 @@ export async function gradePapersWithDynamicSchema(
     
     // Generate error result using fallback grading
     return generateFallbackGradingResult(
-      submissionFile,
+      submissionFiles,
       error instanceof Error ? error.message : String(error)
     );
   }
@@ -50,11 +50,14 @@ export async function gradePapersWithDynamicSchema(
  */
 async function gradeSubmissionWithSchema(
   schema: AssignmentSchema, 
-  submissionFile: File
+  submissionFiles: File[]
 ): Promise<GradingResult> {
   
-  // Extract submission content
-  const submissionContent = await extractSubmissionContent(submissionFile);
+  // Extract and combine content from all submission files
+  const submissionContents = await Promise.all(
+    submissionFiles.map(file => extractSubmissionContent(file))
+  );
+  const submissionContent = submissionContents.join('\n\n--- Next File ---\n\n');
   
   // Prepare grading prompt using centralized template
   const gradingPrompt = populatePrompt('SUBMISSION_GRADER', {
