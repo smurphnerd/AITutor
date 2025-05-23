@@ -12,13 +12,15 @@ import { analyzeAssignmentMaterials } from './dynamicAssignmentAnalyzer';
 
 /**
  * Main grading function using dynamic two-stage approach
+ * Now handles multiple submission files as one student submission
  */
 export async function gradePapersWithDynamicSchema(
   rubricFiles: File[],
-  submissionFile: File
+  submissionFiles: File[]
 ): Promise<GradingResult> {
   try {
-    console.log(`Using dynamic grading approach for: ${submissionFile.originalname}`);
+    const submissionNames = submissionFiles.map(f => f.originalname).join(', ');
+    console.log(`Using dynamic grading approach for student submission: ${submissionNames}`);
 
     // Stage 1: Analyze assignment materials to determine schema
     console.log('Stage 1: Analyzing assignment materials for schema...');
@@ -26,9 +28,9 @@ export async function gradePapersWithDynamicSchema(
     
     console.log(`Detected marking schema: ${assignmentSchema.marking_schema_type}`);
 
-    // Stage 2: Grade submission using the analyzed schema
-    console.log('Stage 2: Grading submission against analyzed schema...');
-    const gradingResult = await gradeSubmissionWithSchema(assignmentSchema, submissionFile);
+    // Stage 2: Grade combined submission using the analyzed schema
+    console.log('Stage 2: Grading combined submission against analyzed schema...');
+    const gradingResult = await gradeSubmissionWithSchema(assignmentSchema, submissionFiles);
 
     return gradingResult;
 

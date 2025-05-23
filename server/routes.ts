@@ -546,42 +546,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date().toISOString()
       });
 
-      // Start the grading process asynchronously
+      // Start the grading process asynchronously - treating all submission files as one student submission
       (async () => {
         try {
-          for (let i = 0; i < submissionFiles.length; i++) {
-            const submission = submissionFiles[i];
-            
-            // Update job status
-            gradingJobs.set(jobId, {
-              ...gradingJobs.get(jobId),
-              progress: Math.round((i / submissionFiles.length) * 100),
-              currentFile: submission.originalname
-            });
-            
-            // Process the submission against all rubrics
-            // Make sure submission is not undefined before passing to grading function
-            if (!submission) {
-              throw new Error("Submission file is undefined");
-            }
+          // Update job status - starting grading
+          gradingJobs.set(jobId, {
+            ...gradingJobs.get(jobId),
+            progress: 25,
+            currentFile: "Processing student submission..."
+          });
 
-            // Import our comprehensive analyzer and enhanced grader
-            const { enhancedGradePapers } = await import('./services/enhancedGrader');
-            
-            // Process using comprehensive two-stage approach:
-            // 1. First stage: Analyze all assignment materials together (instructions, rubrics, reference materials)
-            // 2. Second stage: Grade submission against comprehensive standardized format
-            // This gives students clear understanding of what was expected and how they performed
-            const result = await enhancedGradePapers(rubricFiles, submission);
-            
-            // Store result (using our result from either the successful call or the error handler)
-            const currentJob = gradingJobs.get(jobId);
-            if (currentJob && result) {
-              gradingJobs.set(jobId, {
-                ...currentJob,
-                results: [...currentJob.results, result]
-              });
-            }
+          // Import the dynamic grader for adaptive assessment
+          const { gradePapersWithDynamicSchema } = await import('./services/dynamicGrader');
+          
+          // Process all submission files together as one student submission
+          // The dynamic grader will analyze the assignment materials and create an appropriate schema
+          // then grade the combined submission content against that schema
+          const result = await gradePapersWithDynamicSchema(rubricFiles, submissionFiles);
+          
+          // Update progress
+          gradingJobs.set(jobId, {
+            ...gradingJobs.get(jobId),
+            progress: 75,
+            currentFile: "Finalizing results..."
+          });
+          
+          // Store the single result for this student submission
+          const currentJob = gradingJobs.get(jobId);
+          if (currentJob && result) {
+            gradingJobs.set(jobId, {
+              ...currentJob,
+              results: [result] // Single result for the combined submission
+            });
           }
           
           // Mark job as complete

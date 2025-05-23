@@ -1,0 +1,66 @@
+      (async () => {
+        try {
+          for (let i = 0; i < submissionFiles.length; i++) {
+            const submission = submissionFiles[i];
+            
+            // Update job status
+            gradingJobs.set(jobId, {
+              ...gradingJobs.get(jobId),
+              progress: Math.round((i / submissionFiles.length) * 100),
+              currentFile: submission.originalname
+            });
+            
+            // Process the submission against all rubrics
+            // Make sure submission is not undefined before passing to grading function
+            if (!submission) {
+              throw new Error("Submission file is undefined");
+            }
+
+            // Import our comprehensive analyzer and enhanced grader
+            const { enhancedGradePapers } = await import('./services/enhancedGrader');
+            
+            // Process using comprehensive two-stage approach:
+            // 1. First stage: Analyze all assignment materials together (instructions, rubrics, reference materials)
+            // 2. Second stage: Grade submission against comprehensive standardized format
+            // This gives students clear understanding of what was expected and how they performed
+            const result = await enhancedGradePapers(rubricFiles, submission);
+            
+            // Store result (using our result from either the successful call or the error handler)
+            const currentJob = gradingJobs.get(jobId);
+            if (currentJob && result) {
+              gradingJobs.set(jobId, {
+                ...currentJob,
+                results: [...currentJob.results, result]
+              });
+            }
+          }
+          
+          // Mark job as complete
+          gradingJobs.set(jobId, {
+            ...gradingJobs.get(jobId),
+            status: 'complete',
+            progress: 100,
+            completedAt: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error("Error processing grading job:", error);
+          gradingJobs.set(jobId, {
+            ...gradingJobs.get(jobId),
+            status: 'error',
+            error: error.message || "An unknown error occurred"
+          });
+        }
+      })();
+      
+      res.status(202).json({ jobId });
+    } catch (error) {
+      console.error("Error starting grading job:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid request data", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to start grading" });
+    }
+  });
