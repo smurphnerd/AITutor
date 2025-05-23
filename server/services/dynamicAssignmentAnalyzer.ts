@@ -37,8 +37,8 @@ export async function analyzeAssignmentMaterials(files: File[]): Promise<Assignm
       ASSIGNMENT_CONTENT: combinedContent
     });
 
-    // Try different AI providers in order of preference
-    const aiProviders = ['openai', 'gemini', 'anthropic'];
+    // Try different AI providers in order of preference (Gemini first as default)
+    const aiProviders = ['gemini', 'anthropic', 'openai'];
     
     for (const provider of aiProviders) {
       try {

@@ -65,8 +65,8 @@ async function gradeSubmissionWithSchema(
     SUBMISSION_CONTENT: submissionContent
   });
 
-  // Try different AI providers
-  const aiProviders = ['openai', 'gemini', 'anthropic'];
+  // Try different AI providers (Gemini first as default)
+  const aiProviders = ['gemini', 'anthropic', 'openai'];
   
   for (const provider of aiProviders) {
     try {
