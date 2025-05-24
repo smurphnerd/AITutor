@@ -41,7 +41,7 @@ export const ANTHROPIC_MODELS = {
 // Define which models to use for different purposes
 export const ACTIVE_MODELS = {
   // Primary text processing model
-  PRIMARY_TEXT_MODEL: GEMINI_MODELS.GEMINI_PRO,
+  PRIMARY_TEXT_MODEL: GEMINI_MODELS.GEMINI_1_5_FLASH,
   PRIMARY_TEXT_PROVIDER: AIProvider.GEMINI,
 
   // Backup text processing model
