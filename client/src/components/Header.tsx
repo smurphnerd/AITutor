@@ -67,7 +67,10 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => window.location.href = "/api/logout"}
+                  onClick={async () => {
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                    window.location.reload();
+                  }}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <LogOut className="h-4 w-4" />
@@ -76,11 +79,11 @@ export function Header() {
             </>
           ) : (
             <Button
-              onClick={() => window.location.href = "/api/login"}
+              onClick={() => window.location.href = "/api/auth/google"}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             >
               <User className="h-4 w-4 mr-2" />
-              Sign In
+              Sign in with Google
             </Button>
           )}
         </div>

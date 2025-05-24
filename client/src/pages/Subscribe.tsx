@@ -105,8 +105,8 @@ export default function Subscribe() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => window.location.href = "/api/login"}>
-              Login
+            <Button onClick={() => window.location.href = "/api/auth/google"}>
+              Sign in with Google
             </Button>
           </CardContent>
         </Card>
