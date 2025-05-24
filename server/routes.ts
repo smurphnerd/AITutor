@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { getGoogleAuthUrl, exchangeCodeForTokens, generateJWT, requireAuth, upsertUserFromGoogle } from "./googleAuth";
+import cookieParser from "cookie-parser";
 import Stripe from "stripe";
 import multer from "multer";
 import path from "path";
@@ -70,15 +71,56 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 const gradingJobs = new Map();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication middleware
-  await setupAuth(app);
+  // Setup cookie parser for session management
+  app.use(cookieParser());
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Google OAuth routes
+  app.get('/api/auth/google', (req, res) => {
+    const authUrl = getGoogleAuthUrl(req);
+    res.redirect(authUrl);
+  });
+
+  app.get('/api/auth/google/callback', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      const usageInfo = await storage.checkUsageLimit(userId);
+      const { code } = req.query;
+      if (!code) {
+        return res.status(400).json({ message: 'Authorization code missing' });
+      }
+
+      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+      const { userProfile } = await exchangeCodeForTokens(code as string, redirectUri);
+      
+      // Create or update user in our database
+      const user = await upsertUserFromGoogle(userProfile);
+      
+      // Generate JWT token
+      const token = generateJWT(user.id);
+      
+      // Set secure cookie
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+      
+      // Redirect to home page
+      res.redirect('/');
+    } catch (error) {
+      console.error('Google OAuth error:', error);
+      res.status(500).json({ message: 'Authentication failed' });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('auth_token');
+    res.json({ message: 'Logged out successfully' });
+  });
+
+  // Get current user
+  app.get('/api/auth/user', requireAuth, async (req: any, res) => {
+    try {
+      const user = req.user;
+      const usageInfo = await storage.checkUsageLimit(user.id);
       
       res.json({
         ...user,
@@ -90,9 +132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/auth/usage', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/usage', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const usageInfo = await storage.checkUsageLimit(userId);
       res.json(usageInfo);
     } catch (error) {
@@ -101,9 +143,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/auth/history', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/history', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const history = await storage.getUserGradingHistory(userId);
       res.json(history);
     } catch (error) {
@@ -113,9 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe subscription routes
-  app.post('/api/create-subscription', isAuthenticated, async (req: any, res) => {
+  app.post('/api/create-subscription', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -188,9 +230,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/cancel-subscription', isAuthenticated, async (req: any, res) => {
+  app.post('/api/cancel-subscription', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.stripeSubscriptionId) {
