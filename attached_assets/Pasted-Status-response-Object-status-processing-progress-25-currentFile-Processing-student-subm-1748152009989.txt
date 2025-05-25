@@ -1,0 +1,65 @@
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "processing", progress: 25, currentFile: "Processing student submission...", totalFiles: 1 }
+Home.tsx:150:16
+Status response: 
+Object { status: "complete", progress: 100, currentFile: "Finalizing results...", totalFiles: 1 }
+Home.tsx:150:16
+Warning: Each child in a list should have a unique "key" prop.
+
+Check the render method of `Home`. See https://reactjs.org/link/warning-keys for more information.
+_c3@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/src/components/ui/tabs.tsx:47:9
+Home@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/src/pages/Home.tsx?t=1748151874312:44:37
+Route@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8796b56d:323:13
+Switch@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8796b56d:379:14
+Router
+div
+Provider@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-XIZKKOCE.js?v=8796b56d:22:47
+TooltipProvider@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=8796b56d:2251:7
+QueryClientProvider@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=8796b56d:2804:27
+App
+V@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=8796b56d:44:9
+J@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=8796b56d:42:18
+ThemeProvider@https://102d5431-7cb4-4fc1-9930-d0f4a28345e6-00-26zo1mxcp6krl.spock.replit.dev/src/components/ui/theme-provider.tsx:18:30 react-jsx-dev-runtime.development.js:87:29
+Uncaught TypeError: can't convert undefined to object
+    children Home.tsx:474
+    Home Home.tsx:446
+    React 11
+    workLoop scheduler.development.js:266
+    flushWork scheduler.development.js:239
+    performWorkUntilDeadline scheduler.development.js:533
+    js scheduler.development.js:571
+    js scheduler.development.js:633
+    __require chunk-4MBMRILA.js:11
+    js index.js:6
+    __require chunk-4MBMRILA.js:11
+    React 2
+    __require chunk-4MBMRILA.js:11
+    js React
+    __require chunk-4MBMRILA.js:11
+    js React
+    __require chunk-4MBMRILA.js:11
+    <anonymous> react-dom_client.js:38
+Home.tsx:474:36
+Uncaught TypeError: can't convert undefined to object
+    children Home.tsx:474

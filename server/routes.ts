@@ -589,11 +589,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Start the grading process asynchronously - treating all submission files as one student submission
       (async () => {
         try {
-          // Update job status - starting grading
+          // Update job status - starting grading (25%)
           gradingJobs.set(jobId, {
             ...gradingJobs.get(jobId),
             progress: 25,
-            currentFile: "Processing student submission..."
+            currentFile: "Analyzing assignment materials..."
+          });
+
+          // Simulate progress: analyzing (50%)
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          gradingJobs.set(jobId, {
+            ...gradingJobs.get(jobId),
+            progress: 50,
+            currentFile: "Processing submissions..."
           });
 
           // Import the dynamic grader for adaptive assessment
@@ -604,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // then grade the combined submission content against that schema
           const result = await gradePapersWithDynamicSchema(rubricFiles, submissionFiles);
           
-          // Update progress
+          // Update progress: grading complete (75%)
           gradingJobs.set(jobId, {
             ...gradingJobs.get(jobId),
             progress: 75,

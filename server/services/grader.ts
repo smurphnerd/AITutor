@@ -11,9 +11,9 @@ import { PROMPT_TEMPLATES, populatePrompt } from '../config/promptTemplates';
 import { analyzeAssignmentMaterials } from './analyzer';
 import { MOCK_GRADING_RESULT, MOCK_AI_DELAY } from '../mockData';
 
-// Testing mode flag - can be enabled via environment variable
-const TESTING_MODE = process.env.USE_MOCK_GRADING === 'true';
-console.log('Testing mode enabled:', TESTING_MODE, 'Environment var:', process.env.USE_MOCK_GRADING);
+// Testing mode flag - temporarily forced to true to save API credits
+const TESTING_MODE = true; // Force testing mode to save your AI credits
+console.log('🧪 TESTING MODE FORCED ON - No AI credits will be used');
 
 /**
  * Main grading function using dynamic two-stage approach

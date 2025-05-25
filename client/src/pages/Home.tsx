@@ -471,7 +471,7 @@ export default function Home() {
                           </div>
 
                           <Accordion type="single" collapsible>
-                            {Object.entries(result.sectionFeedback).map(([sectionName, feedback]) => (
+                            {Object.entries(result.sectionFeedback || {}).map(([sectionName, feedback]) => (
                               <AccordionItem key={sectionName} value={sectionName}>
                                 <AccordionTrigger className="text-left">
                                   <div className="flex justify-between items-center w-full mr-4">
