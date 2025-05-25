@@ -9,6 +9,10 @@ import { File } from '@shared/schema';
 import { AssignmentSchema, GradingResult, MarkingSchemaType } from '../types/assignmentSchema';
 import { PROMPT_TEMPLATES, populatePrompt } from '../config/promptTemplates';
 import { analyzeAssignmentMaterials } from './analyzer';
+import { MOCK_GRADING_RESULT, MOCK_AI_DELAY } from '../mockData';
+
+// Testing mode flag - can be enabled via environment variable
+const TESTING_MODE = process.env.USE_MOCK_GRADING === 'true';
 
 /**
  * Main grading function using dynamic two-stage approach
@@ -21,6 +25,22 @@ export async function gradePapersWithDynamicSchema(
   try {
     const submissionNames = submissionFiles.map(f => f.originalname).join(', ');
     console.log(`Using dynamic grading approach for student submission: ${submissionNames}`);
+
+    // Testing mode: return mock data after delay to simulate processing
+    if (TESTING_MODE) {
+      console.log('🧪 TESTING MODE: Using mock grading response');
+      await new Promise(resolve => setTimeout(resolve, MOCK_AI_DELAY));
+      
+      return {
+        ...MOCK_GRADING_RESULT,
+        submissionId: submissionFiles[0]?.id.toString() || 'mock-submission',
+        submissionName: submissionNames,
+        totalScore: 75,
+        maxPossibleScore: 100,
+        status: 'pass' as const,
+        createdAt: new Date().toISOString()
+      };
+    }
 
     // Stage 1: Analyze assignment materials to determine schema
     console.log('Stage 1: Analyzing assignment materials for schema...');
