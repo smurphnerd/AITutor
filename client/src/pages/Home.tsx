@@ -144,7 +144,7 @@ export default function Home() {
       
       // Poll for results using real backend status
       const pollForResults = async (jobId: string) => {
-        const statusResponse = await apiRequest("GET", `/api/grade/${jobId}/status`);
+        const statusResponse = await apiRequest("GET", `/api/grade/status/${jobId}`);
         const status = await statusResponse.json();
         
         // Update progress from backend
@@ -153,7 +153,7 @@ export default function Home() {
         if (status.status === 'complete') {
           setProcessingProgress(100);
           
-          const resultsResponse = await apiRequest("GET", `/api/grade/${jobId}/results`);
+          const resultsResponse = await apiRequest("GET", `/api/grade/results/${jobId}`);
           const results = await resultsResponse.json();
           
           setGradingResults(results);
