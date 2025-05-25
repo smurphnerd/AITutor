@@ -434,99 +434,87 @@ export default function Home() {
                   <p className="text-muted-foreground">Review your detailed feedback below</p>
                 </div>
 
-                <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-                  <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {gradingResults.map((result) => (
-                      <TabsTrigger key={result.submissionId} value={result.submissionId}>
-                        {result.submissionName}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                  
-                  {gradingResults.map((result) => (
-                    <TabsContent key={result.submissionId} value={result.submissionId}>
-                      <Card>
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle>{result.submissionName}</CardTitle>
-                              <CardDescription className="flex items-center space-x-2 mt-2">
-                                <Badge variant={result.status === 'pass' ? 'default' : 'destructive'}>
-                                  {result.status?.toUpperCase() || 'COMPLETE'}
-                                </Badge>
-                                <span>Score: {result.totalScore}/{result.maxPossibleScore}</span>
-                              </CardDescription>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-primary">
-                                {Math.round((result.totalScore / result.maxPossibleScore) * 100)}%
-                              </div>
-                            </div>
+                {gradingResults.map((result) => (
+                  <Card key={result.submissionId}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{result.submissionName}</CardTitle>
+                          <CardDescription className="flex items-center space-x-2 mt-2">
+                            <Badge variant={result.status === 'pass' ? 'default' : 'destructive'}>
+                              {result.status?.toUpperCase() || 'COMPLETE'}
+                            </Badge>
+                            <span>Score: {result.totalScore}/{result.maxPossibleScore}</span>
+                          </CardDescription>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-primary">
+                            {Math.round((result.totalScore / result.maxPossibleScore) * 100)}%
                           </div>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                          <div>
-                            <h4 className="font-semibold mb-2">Overall Feedback</h4>
-                            <p className="text-muted-foreground">{result.overallFeedback}</p>
-                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <h4 className="font-semibold mb-2">Overall Feedback</h4>
+                        <p className="text-muted-foreground">{result.overallFeedback}</p>
+                      </div>
 
-                          <Accordion type="single" collapsible>
-                            {Object.entries(result.sectionFeedback || {}).map(([sectionName, feedback]) => (
-                              <AccordionItem key={sectionName} value={sectionName}>
-                                <AccordionTrigger className="text-left">
-                                  <div className="flex justify-between items-center w-full mr-4">
-                                    <span>{sectionName}</span>
-                                    <Badge variant="outline">
-                                      {feedback.score}/{feedback.maxScore}
-                                    </Badge>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="space-y-4">
-                                  <div>
-                                    <h5 className="font-medium mb-2">Feedback</h5>
-                                    <p className="text-sm text-muted-foreground">{feedback.feedback}</p>
-                                  </div>
-                                  
-                                  {feedback.strengths.length > 0 && (
-                                    <div>
-                                      <h5 className="font-medium mb-2 text-green-600">Strengths</h5>
-                                      <ul className="text-sm space-y-1">
-                                        {feedback.strengths.map((strength, idx) => (
-                                          <li key={idx} className="flex items-start space-x-2">
-                                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                            <span>{strength}</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                  
-                                  {feedback.improvements.length > 0 && (
-                                    <div>
-                                      <h5 className="font-medium mb-2 text-orange-600">Areas for Improvement</h5>
-                                      <ul className="text-sm space-y-1">
-                                        {feedback.improvements.map((improvement, idx) => (
-                                          <li key={idx} className="flex items-start space-x-2">
-                                            <TrendingUp className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                                            <span>{improvement}</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                          </Accordion>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  ))}
-                </Tabs>
+                      <Accordion type="single" collapsible>
+                        {Object.entries(result.sectionFeedback || {}).map(([sectionName, feedback]) => (
+                          <AccordionItem key={sectionName} value={sectionName}>
+                            <AccordionTrigger className="text-left">
+                              <div className="flex justify-between items-center w-full mr-4">
+                                <span>{sectionName}</span>
+                                <Badge variant="outline">
+                                  {feedback.score}/{feedback.maxScore}
+                                </Badge>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4">
+                              <div>
+                                <h5 className="font-medium mb-2">Feedback</h5>
+                                <p className="text-sm text-muted-foreground">{feedback.feedback}</p>
+                              </div>
+                              
+                              {feedback.strengths.length > 0 && (
+                                <div>
+                                  <h5 className="font-medium mb-2 text-green-600">Strengths</h5>
+                                  <ul className="text-sm space-y-1">
+                                    {feedback.strengths.map((strength, idx) => (
+                                      <li key={idx} className="flex items-start space-x-2">
+                                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                        <span>{strength}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {feedback.improvements.length > 0 && (
+                                <div>
+                                  <h5 className="font-medium mb-2 text-orange-600">Areas for Improvement</h5>
+                                  <ul className="text-sm space-y-1">
+                                    {feedback.improvements.map((improvement, idx) => (
+                                      <li key={idx} className="flex items-start space-x-2">
+                                        <TrendingUp className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                                        <span>{improvement}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </CardContent>
+                  </Card>
+                ))}
 
                 <div className="flex justify-center">
                   <Button onClick={resetGrading} variant="outline">
-                    Grade New Submissions
+                    Grade New Submission
                   </Button>
                 </div>
               </div>
