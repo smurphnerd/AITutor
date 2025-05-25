@@ -10,21 +10,19 @@ import fs from "fs/promises";
 import * as fsSync from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { processFile } from "./fileProcessing";
-// Import only the services we need
-import { generateErrorGradingResult } from "./mockGrader";
 import { insertFileSchema } from "@shared/schema";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import { ZodError } from "zod";
 
-// We'll use the uploads directory for initial file upload,
-// but content will be stored in the database
-import { UPLOADS_DIR } from "./uploadFix";
+// Create uploads directory if it doesn't exist
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+if (!fsSync.existsSync(UPLOADS_DIR)) {
+  fsSync.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 // Configure multer storage
 const storage_config = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Use the uploads directory that was created in uploadFix
     cb(null, UPLOADS_DIR);
   },
   filename: (req, file, cb) => {
