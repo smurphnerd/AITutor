@@ -599,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           // Import the dynamic grader for adaptive assessment
-          const { gradePapersWithDynamicSchema } = await import('./services/dynamicGrader');
+          const { gradePapersWithDynamicSchema } = await import('./services/grader');
           
           // Process all submission files together as one student submission
           // The dynamic grader will analyze the assignment materials and create an appropriate schema

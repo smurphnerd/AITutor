@@ -8,7 +8,7 @@
 import { File } from '@shared/schema';
 import { AssignmentSchema, GradingResult, MarkingSchemaType } from '../types/assignmentSchema';
 import { PROMPT_TEMPLATES, populatePrompt } from '../config/promptTemplates';
-import { analyzeAssignmentMaterials } from './dynamicAssignmentAnalyzer';
+import { analyzeAssignmentMaterials } from './analyzer';
 
 /**
  * Main grading function using dynamic two-stage approach
