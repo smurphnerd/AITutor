@@ -158,7 +158,7 @@ export default function Home() {
         const statusResponse = await apiRequest("GET", `/api/grade/${jobId}/status`);
         const status = await statusResponse.json();
         
-        if (status.status === 'completed') {
+        if (status.status === 'complete') {
           clearInterval(interval);
           setProcessingProgress(100);
           
