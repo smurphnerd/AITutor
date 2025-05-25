@@ -659,13 +659,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "Grading job not found" });
     }
     
-    res.json({
+    const statusResponse = {
       status: job.status,
       progress: job.progress,
       currentFile: job.currentFile,
       totalFiles: job.totalFiles,
       error: job.error
-    });
+    };
+    
+    console.log(`Status for job ${jobId}:`, statusResponse); // Debug log
+    
+    res.json(statusResponse);
   });
 
   // Get grading results

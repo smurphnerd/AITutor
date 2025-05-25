@@ -147,6 +147,8 @@ export default function Home() {
         const statusResponse = await apiRequest("GET", `/api/grade/status/${jobId}`);
         const status = await statusResponse.json();
         
+        console.log('Status response:', status); // Debug log
+        
         // Update progress from backend
         setProcessingProgress(status.progress || 0);
         
