@@ -10,9 +10,10 @@ import { AssignmentSchema, GradingResult, MarkingSchemaType } from '../types/ass
 import { PROMPT_TEMPLATES, populatePrompt } from '../config/promptTemplates';
 import { analyzeAssignmentMaterials } from './analyzer';
 import { MOCK_GRADING_RESULT, MOCK_AI_DELAY } from '../mockData';
+import { config } from '../config';
 
-// Testing mode flag - can be controlled via environment variable
-const TESTING_MODE = process.env.USE_MOCK_GRADING === 'true' || process.env.NODE_ENV === 'development';
+// Testing mode flag - controlled via config system
+const TESTING_MODE = config.testing.useMockGrading;
 console.log('🧪 TESTING MODE:', TESTING_MODE ? 'ON (No AI credits used)' : 'OFF (Real AI calls)');
 
 /**

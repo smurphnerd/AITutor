@@ -41,6 +41,11 @@ export const config = {
   uploads: {
     directory: path.join(process.cwd(), 'uploads'),
     maxFileSize: 50 * 1024 * 1024, // 50MB
+  },
+  
+  // Testing mode configuration
+  testing: {
+    useMockGrading: process.env.USE_MOCK_GRADING === 'true' || process.env.NODE_ENV === 'development'
   }
 };
 
