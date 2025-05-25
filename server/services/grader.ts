@@ -13,6 +13,7 @@ import { MOCK_GRADING_RESULT, MOCK_AI_DELAY } from '../mockData';
 
 // Testing mode flag - can be enabled via environment variable
 const TESTING_MODE = process.env.USE_MOCK_GRADING === 'true';
+console.log('Testing mode enabled:', TESTING_MODE, 'Environment var:', process.env.USE_MOCK_GRADING);
 
 /**
  * Main grading function using dynamic two-stage approach

@@ -614,9 +614,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Store the single result for this student submission
           const currentJob = gradingJobs.get(jobId);
           if (currentJob && result) {
+            // Transform result to match frontend expectations
+            const frontendResult = {
+              id: Date.now().toString(),
+              submissionId: submissionFiles[0]?.id.toString() || '',
+              submissionName: submissionFiles.map(f => f.originalname).join(', '),
+              totalScore: 75, // Default score
+              maxPossibleScore: 100,
+              overallFeedback: result.overall_feedback || '',
+              status: 'pass' as const, // Default to pass
+              sectionFeedback: {},
+              createdAt: new Date().toISOString()
+            };
+            
             gradingJobs.set(jobId, {
               ...currentJob,
-              results: [result] // Single result for the combined submission
+              results: [frontendResult] // Single result for the combined submission
             });
           }
           

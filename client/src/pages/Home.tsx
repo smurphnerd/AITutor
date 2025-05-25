@@ -452,7 +452,7 @@ export default function Home() {
                               <CardTitle>{result.submissionName}</CardTitle>
                               <CardDescription className="flex items-center space-x-2 mt-2">
                                 <Badge variant={result.status === 'pass' ? 'default' : 'destructive'}>
-                                  {result.status.toUpperCase()}
+                                  {result.status?.toUpperCase() || 'COMPLETE'}
                                 </Badge>
                                 <span>Score: {result.totalScore}/{result.maxPossibleScore}</span>
                               </CardDescription>
